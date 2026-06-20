@@ -23,7 +23,7 @@
 - **Persistence**: Progress stored in `progress.json` via `GET/POST /api/progress`. Do not use localStorage for tracker or scheduler state — theme preference only.
 - **Formatting**: GitHub-style markdown for all docs and responses.
 - **Documentation**: Preserve all existing comments/docstrings unrelated to the change.
-- **Links**: Use `file://` scheme for file/symbol links (e.g., `[app.js](file:///path/to/app.js)`).
+- **Links**: Use repo-relative paths for file/symbol links (e.g., `[app.js](./public/app.js)`).
 - **Gemini SDK**: All code snippets must use the `google-genai` SDK (`from google import genai`). The `vertexai.generative_models` module was removed on June 24, 2026 — never write code using it.
 
 ## Keeping AGENTS.md current
@@ -56,9 +56,9 @@ When adding or updating quiz questions in `questions.js`, verify answers against
 Agent/ADK/Agent Engine/A2A questions → Domain 7. GenAI (RAG, fine-tuning, Gemini models, Vector Search) → Domain 6.
 
 ## Testing guidelines
-- The project includes an automated test suite in [test.js](file:///Users/debankurs/Desktop/Sandbox/gcpmleprep/test.js) run via `npm test`.
+- The project includes an automated test suite in [test.js](./test.js) run via `npm test`.
 - **Always use Docker Compose** to spin up the server before running tests and tear it down after: `docker compose up -d && npm test && docker compose down`. Never run `node server.js` directly for testing.
-- **Integrity**: `PRACTICE_QUESTIONS` in [questions.js](file:///Users/debankurs/Desktop/Sandbox/gcpmleprep/questions.js) must be an array of at least 30 questions (currently 38 questions).
+- **Integrity**: `PRACTICE_QUESTIONS` in [questions.js](./public/questions.js) must be an array of at least 30 questions (currently 38 questions).
 - **Structure**: Each question must have a numeric `id`, a string `domain` matching one of the 7 exact labels, a string `question`, an array of exactly 4 `options`, a numeric `answer` index (0-3), and a string `explanation`.
 - **Static Assets & Hyperlinks**: Tests verify the existence of all core files (HTML, CSS, JS, markdown, and templates) and ensure all local hyperlinks (`./docs/...`, etc.) inside markdown files are valid.
 - **Server Endpoints**: Tests verify endpoint status codes (200 for index, CSS, docs), 404 for missing files, traversal security, and POST `/api/progress` round-trip.
