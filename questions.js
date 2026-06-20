@@ -342,7 +342,7 @@ const PRACTICE_QUESTIONS = [
   },
   {
     id: 26,
-    domain: "Domain 6: Generative AI on Google Cloud",
+    domain: "Domain 7: Agents & Reasoning Engines",
     question: "Your team is building a conversational reservation assistant. You have a team of conversation designers who do not write Python code but need to define agent playbooks, connect to Cloud Storage data sources for grounding, and configure OpenAPI schemas to check calendar availability. Which tool in Vertex AI Agent Builder should they use?",
     options: [
       "Vertex AI Agent Development Kit (ADK)",
@@ -355,7 +355,7 @@ const PRACTICE_QUESTIONS = [
   },
   {
     id: 27,
-    domain: "Domain 6: Generative AI on Google Cloud",
+    domain: "Domain 7: Agents & Reasoning Engines",
     question: "You are updating a custom Python agent deployed on Vertex AI Agent Engine. The agent imports and uses the 'vertexai.generative_models' module to interact with Gemini and load LangChainAgent tools. You need to ensure the agent remains supported after June 2026. What action should you take?",
     options: [
       "Migrate your imports and tool declarations to the google-genai SDK and install google-genai.",
@@ -364,11 +364,11 @@ const PRACTICE_QUESTIONS = [
       "Rewrite the agent using Vertex AI Agent Studio playbooks, which do not rely on Python SDKs."
     ],
     answer: 0,
-    explanation: "The vertexai.generative_models SDK is deprecated as of June 24, 2025, and will be completely removed on June 24, 2026. All agent and tool implementations must be migrated to the google-genai SDK."
+    explanation: "The vertexai.generative_models SDK is scheduled for complete removal on June 24, 2026. All agent and tool implementations must be migrated to the google-genai SDK immediately to prevent service disruption."
   },
   {
     id: 28,
-    domain: "Domain 6: Generative AI on Google Cloud",
+    domain: "Domain 7: Agents & Reasoning Engines",
     question: "You are designing an AI agent for a customer support portal. The agent needs to track the specific items discussed during the current conversation turn-by-turn. However, it also needs to remember the user's language preferences and historically resolved issues across multiple distinct sessions over several weeks. What memory configuration on Vertex AI Agent Engine should you implement?",
     options: [
       "Use Agent Engine Sessions for the turn-by-turn state, and configure the Agent Engine Memory Bank for long-term cross-session persistence.",
@@ -381,7 +381,7 @@ const PRACTICE_QUESTIONS = [
   },
   {
     id: 29,
-    domain: "Domain 6: Generative AI on Google Cloud",
+    domain: "Domain 7: Agents & Reasoning Engines",
     question: "You have deployed a custom Python agent to Vertex AI Agent Engine. You need to grant an external microservice secure access to invoke this remote agent via its REST resource path 'projects/my-project/locations/us-central1/reasoningEngines/RESOURCE_ID'. Following the principle of least privilege, which IAM role should you bind to the microservice's service account?",
     options: [
       "roles/aiplatform.admin (Vertex AI Administrator)",
@@ -394,7 +394,7 @@ const PRACTICE_QUESTIONS = [
   },
   {
     id: 30,
-    domain: "Domain 6: Generative AI on Google Cloud",
+    domain: "Domain 7: Agents & Reasoning Engines",
     question: "Your organization has built a specialist SQL query agent in one department and a customer support agent in another. You want to orchestrate them into a unified multi-agent system where a supervisor agent can delegate tasks and coordinate responses between these agents using an open, standardized protocol. Which protocol or framework is natively supported by Agent Engine for agent-to-agent coordination?",
     options: [
       "The Agent-to-Agent (A2A) Protocol",
@@ -404,6 +404,128 @@ const PRACTICE_QUESTIONS = [
     ],
     answer: 0,
     explanation: "The Agent-to-Agent (A2A) protocol is an open protocol (under the Linux Foundation) designed for multi-agent coordination (such as supervisor-specialist patterns), and is natively supported on Vertex AI Agent Engine."
+  },
+
+  // --- NEW QUESTIONS: GAPS FILLED ---
+
+  // Context Caching
+  {
+    id: 31,
+    domain: "Domain 6: Generative AI",
+    question: "You are building a legal analysis tool where 10,000 employees per day ask questions about a single 400-page corporate policy document. Each request sends the full document as context to Gemini 2.5 Flash. Your cost per day is extremely high due to input token volume. What is the most cost-effective architectural change?",
+    options: [
+      "Switch to Gemini 2.5 Pro which has a larger context window.",
+      "Use Vertex AI Context Caching to upload the document once, receive a cache name, and reference it in all subsequent requests instead of re-sending the full document.",
+      "Fine-tune Gemini on the policy document so the model internalizes it and requires no context at runtime.",
+      "Split the document into chunks and store in Vertex AI Vector Search, retrieving only the top 3 chunks per query."
+    ],
+    answer: 1,
+    explanation: "Context Caching allows you to upload a large, frequently reused prompt prefix (e.g., a large document) once to the Gemini API. All subsequent requests reference the cached content by name instead of re-sending the tokens. Cached tokens cost approximately 4x less than input tokens, dramatically reducing cost for high-volume, same-context workloads."
+  },
+
+  // PEFT / LoRA vs full SFT
+  {
+    id: 32,
+    domain: "Domain 6: Generative AI",
+    question: "Your team needs to fine-tune Gemini 2.0 Flash to output a specific JSON schema for contract extraction. You have a labeled dataset of 5,000 prompt-response pairs. Your GPU budget is limited and you need to minimize training compute hours. Which fine-tuning approach should you use on Vertex AI?",
+    options: [
+      "Full Supervised Fine-Tuning (SFT) updating all model weights, as it will produce the highest accuracy.",
+      "PEFT adapter tuning (LoRA) using a low adapter_size parameter, which trains only small adapter layers while freezing base model weights, minimizing GPU usage.",
+      "Reinforcement Learning from Human Feedback (RLHF), because JSON formatting requires human preference signals.",
+      "Deploy the base Gemini model and use RAG to retrieve the JSON schema at runtime."
+    ],
+    answer: 1,
+    explanation: "PEFT (Parameter-Efficient Fine-Tuning) with LoRA freezes the base model weights and trains only small adapter layers. This achieves comparable results to full SFT while requiring significantly less GPU memory and compute hours. On Vertex AI, this is configured via the adapter_size parameter in the sft.train() call."
+  },
+
+  // Gemini model selection
+  {
+    id: 33,
+    domain: "Domain 6: Generative AI",
+    question: "You are building two ML applications: (A) a complex multi-step code generation assistant that must solve competitive programming problems requiring deep chain-of-thought reasoning; (B) a high-volume batch pipeline that summarizes 500,000 news articles per day where cost-per-token matters most. Which Gemini models should you use for A and B respectively?",
+    options: [
+      "A: Gemini 2.5 Flash, B: Gemini 2.5 Pro",
+      "A: Gemini 2.5 Pro (with thinking mode), B: Gemini 2.5 Flash",
+      "A: Gemma 3, B: Gemini 2.5 Flash",
+      "A: Gemini 2.5 Pro, B: Gemma 3 deployed on GKE"
+    ],
+    answer: 1,
+    explanation: "Gemini 2.5 Pro with thinking/reasoning mode is optimized for complex multi-step reasoning tasks (coding, math, deep analysis) and delivers the highest accuracy. Gemini 2.5 Flash is the best price-performance model for high-throughput, cost-sensitive batch workloads like summarization pipelines."
+  },
+
+  // Dataplex
+  {
+    id: 34,
+    domain: "Domain 2: Data Preparation & Processing",
+    question: "Your organization stores raw ML training data in Cloud Storage buckets and processed feature tables in BigQuery across multiple GCP projects. The data governance team wants a unified catalog with automatic metadata discovery and lineage tracking, plus automated daily data quality checks (null rate validation, value range checks) that alert on failures before pipeline runs. Which GCP service should you use?",
+    options: [
+      "Vertex AI Feature Store, as it centralizes feature metadata.",
+      "Cloud Data Catalog, as it provides manual tagging of BigQuery tables.",
+      "Dataplex, as it provides unified lake governance, automatic metadata discovery across GCS and BigQuery, and native Data Quality Tasks that run on a schedule.",
+      "Cloud Dataflow with custom DoFn functions that perform validation and write results to Cloud Logging."
+    ],
+    answer: 2,
+    explanation: "Dataplex is Google Cloud's unified data management and governance service. It auto-discovers metadata across GCS and BigQuery (via Lakes/Zones/Assets), provides a searchable Data Catalog with lineage, and supports scheduled Data Quality Tasks (SQL-based rule checks) that publish results to Pub/Sub for alerting — all without writing custom code."
+  },
+
+  // Controlled generation / response_schema
+  {
+    id: 35,
+    domain: "Domain 6: Generative AI",
+    question: "You are using Gemini 2.5 Flash to extract structured data from legal contracts. The output must conform to a strict JSON schema with required fields: 'party_names' (array of strings), 'effective_date' (string), and 'penalty_amount' (number). Prompt engineering with few-shot examples produces JSON about 80% of the time, but the remaining 20% causes downstream parsing failures. What is the most reliable fix?",
+    options: [
+      "Increase the model temperature to 1.0 to produce more creative and varied JSON outputs.",
+      "Fine-tune Gemini on contract examples to internalize the JSON structure.",
+      "Use the response_schema parameter in GenerateContentConfig with response_mime_type='application/json' to enforce the exact JSON schema at the API level.",
+      "Add a Cloud Function post-processor that retries the Gemini call up to 5 times until valid JSON is returned."
+    ],
+    answer: 2,
+    explanation: "Controlled generation via response_schema (combined with response_mime_type='application/json') enforces schema compliance at the API level — Gemini is constrained to only output tokens that form a valid JSON object matching your schema. This guarantees 100% schema-valid output without fine-tuning or retry logic."
+  },
+
+  // Artifact Registry vs Container Registry
+  {
+    id: 36,
+    domain: "Domain 4: MLOps & Pipelines",
+    question: "Your team is building a Vertex AI Custom Training job using a custom Docker container. You need to store the container image in a Google Cloud container registry. The image should be stored in the us-central1 region, with per-repository IAM controls and VPC Service Controls support. Which registry should you use and what image URI format is correct?",
+    options: [
+      "Container Registry (gcr.io). URI format: gcr.io/my-project/trainer:v1",
+      "Artifact Registry. URI format: us-central1-docker.pkg.dev/my-project/ml-images/trainer:v1",
+      "Cloud Storage. URI format: gs://my-project-images/trainer.tar.gz",
+      "Container Registry with regional replication. URI format: us.gcr.io/my-project/trainer:v1"
+    ],
+    answer: 1,
+    explanation: "Artifact Registry is the current standard for storing Docker images on Google Cloud, replacing the deprecated Container Registry. It supports regional storage, per-repository IAM, VPC Service Controls, and multiple artifact formats. The URI format is REGION-docker.pkg.dev/PROJECT/REPOSITORY/IMAGE:TAG."
+  },
+
+  // Sensitive Data Protection
+  {
+    id: 37,
+    domain: "Domain 5: Monitoring & Responsible AI",
+    question: "Your company's raw customer transaction dataset in BigQuery contains Social Security Numbers, full names, and email addresses. Before using this data to train a fraud detection model on Vertex AI, the legal team requires all PII to be removed. You need a managed GCP service that can scan the BigQuery table for PII and replace sensitive values with masked tokens, with minimum custom code. What should you use?",
+    options: [
+      "Write a Cloud Dataflow pipeline with custom Python DoFn functions that use regex to detect and replace PII fields.",
+      "Use BigQuery authorized views to hide PII columns from the training service account.",
+      "Use Sensitive Data Protection (formerly Cloud DLP) to run an inspect-and-de-identify job on the BigQuery table, replacing PII with masked or tokenized values.",
+      "Use Vertex AI Data Labeling to flag PII records and then delete them from the dataset."
+    ],
+    answer: 2,
+    explanation: "Sensitive Data Protection (formerly Cloud DLP) provides managed inspection and de-identification of sensitive data in BigQuery, GCS, and other sources. It detects 150+ built-in infoTypes (SSNs, names, emails, credit cards) and applies de-identification transformations (masking, tokenization, bucketing) without writing custom code."
+  },
+
+  // Vertex AI Experiments
+  {
+    id: 38,
+    domain: "Domain 3: Model Development",
+    question: "Your team is running 20 Vertex AI Custom Training jobs with different hyperparameter combinations (learning rate, batch size, regularization strength) to find the optimal configuration for a tabular classification model. You need to compare all runs by val_AUC in a single view and programmatically identify the best run to promote to the Model Registry. Which Vertex AI service should you use?",
+    options: [
+      "Vertex AI Vizier, as it performs black-box optimization and tracks trials automatically.",
+      "Vertex AI Experiments, as it provides a centralized tracking workspace to log parameters and metrics across runs and compare them in Vertex AI Studio.",
+      "Vertex AI Model Registry, as it stores evaluation metrics alongside each model version.",
+      "Cloud Logging, as all Vertex AI job metrics are automatically written there."
+    ],
+    answer: 1,
+    explanation: "Vertex AI Experiments is designed for experiment tracking and comparison. Each training run logs hyperparameters and metrics to an Experiment. In Vertex AI Studio, all runs are visible in a comparison table. Programmatically, you can query the top-performing run by metric and use its output model artifact for registry promotion. Vizier is for automated hyperparameter search (Bayesian optimization), not manual experiment comparison."
   }
 ];
 

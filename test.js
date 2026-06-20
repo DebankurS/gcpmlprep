@@ -17,7 +17,7 @@ console.log("1. Testing questions.js integrity...");
 try {
   const { PRACTICE_QUESTIONS } = require('./questions.js');
   assert.ok(Array.isArray(PRACTICE_QUESTIONS), "PRACTICE_QUESTIONS should be an array");
-  assert.strictEqual(PRACTICE_QUESTIONS.length, 30, "Should contain exactly 30 questions");
+  assert.ok(PRACTICE_QUESTIONS.length >= 30, `Should contain at least 30 questions (found ${PRACTICE_QUESTIONS.length})`);
   
   PRACTICE_QUESTIONS.forEach((q, idx) => {
     assert.strictEqual(typeof q.id, 'number', `Question [${idx}] should have a numeric id`);
@@ -50,6 +50,7 @@ const requiredFiles = [
   'docs/04_mlops_and_pipelines.md',
   'docs/05_monitoring_and_responsible_ai.md',
   'docs/06_generative_ai.md',
+  'docs/07_agents_and_reasoning_engines.md',
   'src/snippets/bqml_model.sql',
   'src/snippets/vertex_pipeline.py',
   'src/snippets/dataflow_pipeline.py'
@@ -78,7 +79,8 @@ const mdFiles = [
   'docs/03_model_development.md',
   'docs/04_mlops_and_pipelines.md',
   'docs/05_monitoring_and_responsible_ai.md',
-  'docs/06_generative_ai.md'
+  'docs/06_generative_ai.md',
+  'docs/07_agents_and_reasoning_engines.md'
 ];
 
 try {

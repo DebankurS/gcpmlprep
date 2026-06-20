@@ -63,3 +63,86 @@ The model is too simple to capture the underlying pattern.
 *   **Feature Engineering:** Add polynomial features or interactions.
 *   **Train Longer:** Increase the number of epochs or reduce learning rate.
 *   **Decrease Regularization:** Loosen weight constraints.
+
+---
+
+## 4. Vertex AI Experiments
+
+**Vertex AI Experiments** tracks, compares, and visualizes multiple training runs. Use it to log hyperparameters, metrics, and artifacts across trials without switching tools.
+
+### Key Concepts
+*   **Experiment:** Logical grouping for related runs (e.g., "churn-model-v2-tuning").
+*   **Run:** Single training job execution. Logs parameters and metrics.
+*   **Artifact:** Any file output (model checkpoint, dataset reference) linked to a run.
+
+### Usage Pattern
+```python
+import vertexai
+from vertexai.preview import experiments
+
+vertexai.init(project="my-project", location="us-central1", experiment="churn-model-v2")
+
+with vertexai.preview.experiments.start_run("lr-0.001-batch-64"):
+    vertexai.preview.experiments.log_params({"learning_rate": 0.001, "batch_size": 64})
+    # ... training loop ...
+    vertexai.preview.experiments.log_metrics({"val_accuracy": 0.923, "val_loss": 0.21})
+```
+
+*   Compare runs in **Vertex AI Studio** → Experiments tab or via the SDK.
+*   TensorBoard is also integrated — pass `tensorboard` arg to `CustomJob` to auto-stream logs.
+
+---
+
+## 5. Gemini Fine-Tuning (SFT & PEFT/LoRA)
+
+For GenAI-specific model development, Vertex AI supports supervised fine-tuning of Gemini models.
+
+### SFT vs. PEFT (LoRA) — Exam Decision
+
+| Approach | How it Works | When to Use |
+| :--- | :--- | :--- |
+| **Full SFT** | Updates all model weights on your dataset. | Maximum accuracy; large labeled dataset available; cost not a concern. |
+| **PEFT / LoRA** | Freezes base weights; trains small adapter layers. Much less GPU memory. | Minimize compute cost; limited GPU budget; same accuracy goals as SFT. |
+
+> **Exam trap:** "Fine-tune Gemini but minimize GPU hours and cost" → **LoRA adapter tuning** (`adapter_size` parameter), not full SFT.
+
+### Training Data Format (JSONL)
+Each line is a prompt-response pair:
+```json
+{"contents": [{"role": "user", "parts": [{"text": "Summarize: <contract text>"}]}, {"role": "model", "parts": [{"text": "{\"party\": \"Acme\", \"date\": \"2026-01-01\"}"}]}]}
+```
+
+### Launch Tuning Job
+```python
+from vertexai.preview.tuning import sft
+
+tuning_job = sft.train(
+    source_model="gemini-2.0-flash",
+    train_dataset="gs://my-bucket/train.jsonl",
+    validation_dataset="gs://my-bucket/val.jsonl",
+    epochs=3,
+    adapter_size=4,   # LoRA rank; omit for full SFT
+    tuned_model_display_name="contract-extractor-v1",
+)
+```
+
+---
+
+## 6. Model Evaluation on Vertex AI
+
+After training, evaluate models before promoting to the registry.
+
+### Evaluation Approaches
+
+| Method | When to Use |
+| :--- | :--- |
+| **Vertex AI Evaluation Service** | Batch evaluation of LLM outputs using built-in metrics (BLEU, ROUGE, coherence, groundedness). |
+| **Custom Metrics in Pipelines** | For non-LLM models: compute metrics in a pipeline component; gate `Pusher` on threshold. |
+| **TFX Evaluator component** | TensorFlow models: slice-by-slice performance analysis using TFMA. |
+| **Vertex AI Experiments** | Compare evaluation metrics across multiple model versions / hyperparameter runs. |
+
+### LLM Evaluation Metrics (Exam Guide)
+*   **BLEU / ROUGE:** Overlap-based. Good for translation and summarization tasks.
+*   **Groundedness:** Does the response stay grounded in provided context? (RAG quality signal)
+*   **Coherence / Fluency:** General quality of generated text.
+*   **Pairwise comparison:** Judge model A vs. model B using Gemini as an automated judge.

@@ -72,3 +72,58 @@ When one class is extremely rare (e.g., fraud at 0.01% of transactions), models 
     *   *Numerical:* Impute with median/mean or use a separate indicator feature (e.g., `is_missing = 1`).
     *   *Categorical:* Treat as a new category (e.g., `"unknown"`).
 *   **Outliers:** Use **clipping** (capping values at the 1st and 99th percentiles) or **log-transformation** for highly skewed distributions (e.g., income, transaction amount).
+
+---
+
+## 5. Dataplex — Data Governance & Quality
+
+**Dataplex** is Google Cloud's unified data governance and management service. It automates data discovery, quality monitoring, and metadata management across BigQuery, GCS, and other sources.
+
+### Key Components
+
+| Component | Purpose |
+| :--- | :--- |
+| **Lakes / Zones / Assets** | Hierarchical organization of data resources. Lake → Zone (Raw/Curated) → Asset (BQ dataset or GCS bucket). |
+| **Data Catalog** | Automatic metadata tagging, schema discovery, and lineage tracking across all assets in a lake. |
+| **Data Quality Tasks** | Define SQL-based quality rules (e.g., nullability checks, range checks) that run on a schedule. Alerts on rule failures. |
+| **Auto Data Discovery** | Scans GCS and BigQuery to build a searchable metadata catalog automatically. |
+
+### Exam Scenarios
+*   **Scenario:** Centralize governance of raw data files in GCS and processed tables in BigQuery under a unified catalog with lineage.
+    *   *Solution:* **Dataplex** — create a lake, attach GCS bucket and BigQuery dataset as assets, enable auto-discovery.
+*   **Scenario:** Run daily automated data quality checks (null rate, min/max range) on a BigQuery table before triggering training.
+    *   *Solution:* **Dataplex Data Quality Tasks** → publish results to Pub/Sub → trigger Vertex AI Pipeline on pass.
+
+> **Exam trap:** Dataplex is for **governance and quality monitoring** of existing data. It does not replace Dataflow for transformation or Feature Store for feature serving.
+
+---
+
+## 6. Vertex AI Feature Store — Architecture Detail
+
+Feature Store v2 (current) introduced a cleaner architecture compared to the original (v1).
+
+### v2 Architecture
+
+```
+[Source Data]
+      |
+      v
+[Feature Group]  <-- Points to a BigQuery table or view (source of truth)
+      |
+      v
+[Feature View]   <-- Logical subset of features from one or more Feature Groups
+      |
+      +---> Offline Serving: BigQuery (batch training snapshots)
+      |
+      +---> Online Serving: Bigtable or Redis (low-latency real-time predictions)
+```
+
+### Key Concepts
+*   **Feature Group:** Registered pointer to a BigQuery source table. No data is copied — it stays in BigQuery.
+*   **Feature View:** Defines which columns to serve, sync schedule (online store refresh), and TTL.
+*   **Sync Job:** Materializes Feature View data from BigQuery into the online store (Bigtable) on a schedule.
+*   **Point-in-Time Joins:** When generating training datasets offline, Feature Store returns the feature values exactly as they existed at the label event timestamp — prevents data leakage.
+
+### Exam Scenario
+*   **Scenario:** Multiple teams need real-time access to pre-computed `risk_score` and `days_since_last_login` features with <10ms latency during model serving.
+    *   *Solution:* Register a Feature Group backed by a BigQuery source, create a Feature View, enable online serving backed by Bigtable. Call `feature_view.fetch_feature_values(entity_id)` in the serving path.

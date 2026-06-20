@@ -17,7 +17,7 @@ gcpmleprep/
 ├── server.js                   # Zero-dependency local Node.js web server
 ├── package.json                # Project configuration & start scripts
 ├── test.js                     # Automated test suite (database & HTTP integration)
-├── AGENTS.md                   # GCP AI Agents & Reasoning Engines study guide
+├── AGENTS.md                   # Agent environment rules and instructions
 ├── docs/                       # Core Study Guides
 │   ├── 01_framing_and_architecture.md
 │   ├── 02_data_preparation.md
@@ -25,7 +25,7 @@ gcpmleprep/
 │   ├── 04_mlops_and_pipelines.md
 │   ├── 05_monitoring_and_responsible_ai.md
 │   ├── 06_generative_ai.md
-│   └── 07_agents_and_reasoning_engines.md
+│   └── 07_agents_and_reasoning_engines.md # GCP AI Agents & Reasoning Engines study guide
 └── src/snippets/               # Production-level GCP ML Code Templates
     ├── bqml_model.sql          # BigQuery ML training, eval, and Explainable AI
     ├── vertex_pipeline.py      # Vertex AI Pipeline definition using KFP SDK
@@ -40,7 +40,7 @@ We have included a premium **Study Dashboard** to consolidate your notes, track 
 
 ### Features
 1.  **Domain Progress Tracker:** Checklist of all core certification items. Checked topics are persisted in your browser's local storage and update your overall completion scores.
-2.  **Interactive Study Guides:** A reader interface allowing you to read all six domain documentation files right from the app.
+2.  **Interactive Study Guides:** A reader interface allowing you to read all seven study guide files right from the app.
 3.  **Mock Exam Quiz Center:** Practice test engine containing 30 custom exam-realistic questions. Supports a "Quick Practice" mode (10 random questions) and "Domain-Specific" modes. Provides instant feedback and detailed explanations for every question.
 4.  **Cheat Sheets:** Quick-reference comparison charts (e.g. database choice, metrics selection, drift vs. skew).
 5.  **Code Playground:** Built-in viewer for copying and reviewing standard GCP ML code snippets.

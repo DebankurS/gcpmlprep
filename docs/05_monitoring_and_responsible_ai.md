@@ -58,4 +58,65 @@ Google Cloud emphasizes ethical and responsible AI implementation.
 *   **Security & Privacy:**
     *   *Data Minimization:* Only train on necessary features.
     *   *Differential Privacy:* Injecting mathematical noise into datasets to prevent individual record reconstruction.
-    *   *De-identification:* Using **Cloud Data Loss Prevention (DLP)** to redact PII (names, Social Security numbers) before ingestion.
+    *   *De-identification:* Using **Sensitive Data Protection (formerly Cloud DLP)** to redact PII (names, Social Security numbers, credit card numbers) before ingestion into training pipelines.
+
+---
+
+## 4. Sensitive Data Protection (formerly Cloud DLP)
+
+**Sensitive Data Protection** scans, discovers, and de-identifies sensitive data across GCS, BigQuery, and Datastore before it is used in ML pipelines.
+
+### Key Operations
+
+| Operation | What it Does | Exam Use Case |
+| :--- | :--- | :--- |
+| **Inspect** | Scan dataset for PII (names, emails, SSNs, credit cards). | Audit a raw BigQuery table before using it as training data. |
+| **De-identify (Masking)** | Replace PII with masked values (e.g., `[PERSON_NAME]`). | Anonymize raw training data while preserving structure. |
+| **De-identify (Tokenization)** | Replace PII with format-preserving encrypted tokens. | Allow joins on tokenized IDs without exposing real values. |
+| **Re-identify** | Reverse tokenization using encryption key (authorized only). | Authorized de-anonymization for compliance audits. |
+
+### Pipeline Integration Pattern
+```
+[Raw BigQuery Table with PII]
+            |
+            v
+[Sensitive Data Protection Inspect + De-identify Job]
+            |
+            v
+[Clean BigQuery Table (PII removed/masked)]
+            |
+            v
+[Vertex AI Training Pipeline]
+```
+
+> **Exam trap:** "Remove SSNs from training data before Vertex AI ingestion" → **Sensitive Data Protection de-identify job**, not a custom Dataflow script.
+
+---
+
+## 5. Vertex AI Model Monitoring v2
+
+Model Monitoring v2 extends the original with support for **raw prediction monitoring** (logging raw request/response payloads) in addition to feature distribution monitoring.
+
+### Monitoring Types
+
+| Type | What is Monitored | Trigger |
+| :--- | :--- | :--- |
+| **Training-Serving Skew** | Input feature distribution vs. training baseline. | Feature drift exceeds threshold → Pub/Sub alert. |
+| **Prediction Drift** | Input feature distribution day N vs. day N-30. | Feature drift vs. recent production baseline. |
+| **Feature Attribution Drift** | Change in which features the model relies on most. | Attribution shift exceeds threshold. |
+| **Raw Prediction Monitoring** (v2) | Full request/response payload logged to BigQuery for quality auditing. | Always-on; no threshold needed. |
+
+### Raw Prediction Logging (v2)
+```python
+from google.cloud import aiplatform
+
+endpoint = aiplatform.Endpoint("projects/my-project/locations/us-central1/endpoints/ENDPOINT_ID")
+
+endpoint.update(
+    enable_request_response_logging=True,
+    request_response_logging_sampling_rate=1.0,   # 100% of requests
+    request_response_logging_bq_destination="bq://my-project.monitoring_dataset.raw_predictions",
+)
+```
+
+> **Exam advantage:** Raw prediction logging lets you reconstruct ground-truth comparisons after the fact — useful when labels arrive with delay (e.g., fraud labels confirmed days after transaction).
