@@ -339,6 +339,71 @@ const PRACTICE_QUESTIONS = [
     ],
     answer: 0,
     explanation: "Vertex AI Model Registry is the central repository for managing model versions, tracking metadata, and deploying models to endpoints. It acts as the bridge between model training pipelines (which output models) and model endpoints (which serve them)."
+  },
+  {
+    id: 26,
+    domain: "Domain 6: Generative AI on Google Cloud",
+    question: "Your team is building a conversational reservation assistant. You have a team of conversation designers who do not write Python code but need to define agent playbooks, connect to Cloud Storage data sources for grounding, and configure OpenAPI schemas to check calendar availability. Which tool in Vertex AI Agent Builder should they use?",
+    options: [
+      "Vertex AI Agent Development Kit (ADK)",
+      "Vertex AI Agent Studio (Playbooks & Agent Designer)",
+      "Vertex AI Agent Engine",
+      "Vertex AI Custom Container Training"
+    ],
+    answer: 1,
+    explanation: "Agent Studio is the low-code path in Vertex AI Agent Builder that enables conversational designers to create playbooks, ground using Data Stores (e.g. GCS), and connect tools via OpenAPI schemas without writing code."
+  },
+  {
+    id: 27,
+    domain: "Domain 6: Generative AI on Google Cloud",
+    question: "You are updating a custom Python agent deployed on Vertex AI Agent Engine. The agent imports and uses the 'vertexai.generative_models' module to interact with Gemini and load LangChainAgent tools. You need to ensure the agent remains supported after June 2026. What action should you take?",
+    options: [
+      "Migrate your imports and tool declarations to the google-genai SDK and install google-genai.",
+      "Do nothing, as vertexai.generative_models remains the primary SDK module for Vertex AI.",
+      "Port your code to a custom container running the old google-cloud-aiplatform library version 1.100.",
+      "Rewrite the agent using Vertex AI Agent Studio playbooks, which do not rely on Python SDKs."
+    ],
+    answer: 0,
+    explanation: "The vertexai.generative_models SDK is deprecated as of June 24, 2025, and will be completely removed on June 24, 2026. All agent and tool implementations must be migrated to the google-genai SDK."
+  },
+  {
+    id: 28,
+    domain: "Domain 6: Generative AI on Google Cloud",
+    question: "You are designing an AI agent for a customer support portal. The agent needs to track the specific items discussed during the current conversation turn-by-turn. However, it also needs to remember the user's language preferences and historically resolved issues across multiple distinct sessions over several weeks. What memory configuration on Vertex AI Agent Engine should you implement?",
+    options: [
+      "Use Agent Engine Sessions for the turn-by-turn state, and configure the Agent Engine Memory Bank for long-term cross-session persistence.",
+      "Use Cloud SQL to cache the turn-by-turn state, and use Agent Engine Sessions for long-term persistence.",
+      "Deploy a Memorystore (Redis) instance to handle both turn-by-turn and long-term memory requirements, as Agent Engine has no native memory capabilities.",
+      "Configure the Agent Engine Memory Bank to store short-term turn states, and use a local file variable to store cross-session variables."
+    ],
+    answer: 0,
+    explanation: "Vertex AI Agent Engine provides two GA managed memory capabilities: Sessions (for tracking short-term state across turns within a single session) and Memory Bank (for storing persistent distilled facts and preferences across different user sessions over time)."
+  },
+  {
+    id: 29,
+    domain: "Domain 6: Generative AI on Google Cloud",
+    question: "You have deployed a custom Python agent to Vertex AI Agent Engine. You need to grant an external microservice secure access to invoke this remote agent via its REST resource path 'projects/my-project/locations/us-central1/reasoningEngines/RESOURCE_ID'. Following the principle of least privilege, which IAM role should you bind to the microservice's service account?",
+    options: [
+      "roles/aiplatform.admin (Vertex AI Administrator)",
+      "roles/aiplatform.user (Vertex AI User)",
+      "roles/viewer (Viewer)",
+      "roles/aiplatform.serviceAgent (Vertex AI Service Agent)"
+    ],
+    answer: 1,
+    explanation: "To query or invoke a deployed Agent Engine resource (represented as a reasoningEngine in the REST path), the calling principal (user or service account) must be granted the Vertex AI User role (roles/aiplatform.user) on the resource."
+  },
+  {
+    id: 30,
+    domain: "Domain 6: Generative AI on Google Cloud",
+    question: "Your organization has built a specialist SQL query agent in one department and a customer support agent in another. You want to orchestrate them into a unified multi-agent system where a supervisor agent can delegate tasks and coordinate responses between these agents using an open, standardized protocol. Which protocol or framework is natively supported by Agent Engine for agent-to-agent coordination?",
+    options: [
+      "The Agent-to-Agent (A2A) Protocol",
+      "The gRPC Streaming Protocol",
+      "The LangChain Graph API",
+      "The OpenAPI Tool Specification"
+    ],
+    answer: 0,
+    explanation: "The Agent-to-Agent (A2A) protocol is an open protocol (under the Linux Foundation) designed for multi-agent coordination (such as supervisor-specialist patterns), and is natively supported on Vertex AI Agent Engine."
   }
 ];
 

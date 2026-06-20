@@ -89,7 +89,7 @@ root_agent = Agent(
 ### Deploy to Agent Engine
 ```python
 import vertexai
-from vertexai.preview import reasoning_engines  # ponytail: old import still works
+from vertexai.preview import reasoning_engines  # Note: old preview import still works for compatibility
 
 vertexai.init(project="my-project", location="us-central1")
 
@@ -123,7 +123,7 @@ response = remote.query(input="What is the current Gemini pricing?")
 ### Key Components
 1.  **Playbooks:** Natural language instructions for the agent.
     *   *Example:* "You are a reservation assistant. Ask for name and order ID. Use `CancelOrder` tool for cancellations. Use `CheckAvailability` tool for date changes."
-2.  **Agent Designer:** Visual drag-and-drop canvas in the Cloud Console (Preview, Dec 2025) for designing agent flows graphically.
+2.  **Agent Designer:** Visual drag-and-drop canvas in the Cloud Console (GA, Dec 2025) for designing agent flows graphically.
 3.  **Data Stores (Grounding):**
     *   Connect to GCS (PDFs, HTML), BigQuery, or web URLs.
     *   Uses RAG under the hood — answers grounded in connected data only.
@@ -171,7 +171,7 @@ remote_agent = reasoning_engines.ReasoningEngine.create(
 | Code Execution | GA (Feb 2026) | Sandboxed code execution inside the agent runtime. |
 | Tracing / Unified Trace Viewer | GA | Debugging agent reasoning paths in Cloud Console. |
 
-> **SDK Deprecation Warning:** `vertexai.generative_models` was deprecated June 24, 2025 and will be **removed June 24, 2026**. Migrate LangchainAgent Tool imports to the `google-genai` SDK (`pip install google-genai`).
+> **CRITICAL SDK DEPRECATION WARNING (June 2026):** The legacy `vertexai.generative_models` module is scheduled for complete removal on **June 24, 2026** (next week). All production code and LangchainAgent Tool imports must be migrated to the new `google-genai` SDK (`pip install google-genai`) immediately to prevent service disruption.
 
 ---
 

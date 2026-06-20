@@ -178,6 +178,10 @@
                   <span class="badge">D6</span>
                   <span class="note-title">Generative AI</span>
                 </li>
+                <li data-doc="Agents.md">
+                  <span class="badge">AG</span>
+                  <span class="note-title">AI Agents & Engines</span>
+                </li>
               </ul>
             </div>
             <div class="notes-content-area card">
@@ -201,13 +205,13 @@
                 <i class="fa-solid fa-graduation-cap"></i>
               </div>
               <h2>GCP MLE Practice Quiz Center</h2>
-              <p>Test your knowledge with 25 realistic, high-fidelity questions designed to mirror the actual exam format, spanning all 6 certification domains.</p>
+              <p>Test your knowledge with 30 realistic, high-fidelity questions designed to mirror the actual exam format, spanning all 6 certification domains.</p>
               
               <div class="quiz-settings">
                 <div class="settings-group">
                   <label for="quiz-mode">Select Quiz Mode:</label>
                   <select id="quiz-mode">
-                    <option value="all">Full Exam (25 Questions)</option>
+                    <option value="all">Full Exam (30 Questions)</option>
                     <option value="quick">Quick Practice (10 Questions)</option>
                     <option value="d1">Domain 1: Framing & Architecture</option>
                     <option value="d2">Domain 2: Data Preparation</option>
@@ -401,6 +405,64 @@
                   <strong>Prediction Drift</strong>
                   <p>Changes in production input data distribution over time (e.g. user behavior shifts over weeks/months).</p>
                   <span><em>Fix:</em> Schedule automatic retraining via Vertex AI Pipelines.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 5: GCP Agent Memory Decision Matrix -->
+            <div class="cheatsheet-card card">
+              <div class="card-header-icon"><i class="fa-solid fa-brain"></i></div>
+              <h3>GCP Memory Patterns for AI Agents</h3>
+              <p class="card-subtitle">Choose the correct persistent memory layer based on access and lifecycle.</p>
+              <table class="cheat-table">
+                <thead>
+                  <tr>
+                    <th>Storage / API</th>
+                    <th>Memory Type</th>
+                    <th>Access Pattern & Scale</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Agent Engine Sessions</strong></td>
+                    <td>Short-term / In-session</td>
+                    <td>Native turn state within a session. No external DB needed.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Agent Engine Memory Bank</strong></td>
+                    <td>Long-term / Cross-session</td>
+                    <td>GA managed memory of distilled facts/profiles. $0.25/1k events.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cloud Firestore</strong></td>
+                    <td>Full Turn Logs / Raw History</td>
+                    <td>NoSQL key-value. Natively backed by LangChain's Firestore history.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Memorystore (Redis)</strong></td>
+                    <td>Low-Latency Cache</td>
+                    <td>Sub-millisecond responses for extremely high-scale real-time chatbots.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Card 6: Vertex AI Agent Builder Matrix -->
+            <div class="cheatsheet-card card">
+              <div class="card-header-icon"><i class="fa-solid fa-diagram-project"></i></div>
+              <h3>Agent Builder Decision Matrix</h3>
+              <p class="card-subtitle">Select the right development path for Vertex AI Agents.</p>
+              <div class="skew-drift-box">
+                <div class="sd-block">
+                  <strong>Agent Studio (Low-Code Studio)</strong>
+                  <p>Conversational design via Playbooks, grounding on Data Stores (GCS, BigQuery), and OpenAPI Tools integration.</p>
+                  <span><em>Use for:</em> Business/Conversational designers, minimal Python resources.</span>
+                </div>
+                <hr>
+                <div class="sd-block">
+                  <strong>ADK + Agent Engine (Code-First)</strong>
+                  <p>Python/Go/TS SDKs for custom multi-agent structures, custom reasoning loops, and serverless managed deployment.</p>
+                  <span><em>Use for:</em> Software engineers, LangGraph/LangChain developers, custom tools.</span>
                 </div>
               </div>
             </div>

@@ -17,7 +17,7 @@ console.log("1. Testing questions.js integrity...");
 try {
   const { PRACTICE_QUESTIONS } = require('./questions.js');
   assert.ok(Array.isArray(PRACTICE_QUESTIONS), "PRACTICE_QUESTIONS should be an array");
-  assert.strictEqual(PRACTICE_QUESTIONS.length, 25, "Should contain exactly 25 questions");
+  assert.strictEqual(PRACTICE_QUESTIONS.length, 30, "Should contain exactly 30 questions");
   
   PRACTICE_QUESTIONS.forEach((q, idx) => {
     assert.strictEqual(typeof q.id, 'number', `Question [${idx}] should have a numeric id`);

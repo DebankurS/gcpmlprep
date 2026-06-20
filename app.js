@@ -77,7 +77,11 @@ const DOMAINS_CHECKLIST = [
       { id: "d6_1", text: "Access and prototype foundation models inside Vertex AI Model Garden and Vertex AI Studio." },
       { id: "d6_2", text: "Design Retrieval-Augmented Generation (RAG) pipelines using Vertex AI Vector Search (Matching Engine)." },
       { id: "d6_3", text: "Differentiate customization paths: choose Prompt Engineering vs. Grounding vs. Supervised Fine-Tuning (SFT) vs. RLHF." },
-      { id: "d6_4", text: "Implement Model Grounding with enterprise data sources (Vertex AI Search) and adjust content safety filters." }
+      { id: "d6_4", text: "Implement Model Grounding with enterprise data sources (Vertex AI Search) and adjust content safety filters." },
+      { id: "d6_5", text: "Build code-first agents with the ADK (Agent Development Kit) and deploy them to Vertex AI Agent Engine serverless runtime." },
+      { id: "d6_6", text: "Design conversational agents with Agent Studio using playbooks, visual flows, and OpenAPI tools." },
+      { id: "d6_7", text: "Configure persistent memory using short-term Sessions and long-term Memory Bank, or Firestore/Redis." },
+      { id: "d6_8", text: "Implement multi-agent systems and agent-to-agent coordination using the A2A protocol." }
     ]
   }
 ];
@@ -220,6 +224,34 @@ const NOTES_OFFLINE_FALLBACK = {
     <ul>
       <li><strong>Grounding:</strong> Forcing LLMs to cite and stay within the boundaries of GCS, BigQuery, or Web Search results.</li>
       <li><strong>Safety Filters:</strong> Configurable block levels (e.g., BLOCK_MEDIUM_AND_ABOVE) for Harmful, Hate, Harassment, and Sexually Explicit content.</li>
+    </ul>
+  `,
+  "Agents.md": `
+    <h1>GCP AI Agents & Reasoning Engines Study Guide</h1>
+    <p>This guide covers the architectural design, implementation, and deployment of <strong>AI Agents and Reasoning Engines</strong> on Google Cloud Platform (GCP)—a critical topic in the updated GCP Professional Machine Learning Engineer exam.</p>
+    <h2>1. Conceptual Framework: What is an Agent?</h2>
+    <ul>
+      <li><strong>Brain:</strong> The LLM (e.g., Gemini 2.0 Flash, Gemini 2.5 Pro) that performs reasoning.</li>
+      <li><strong>Memory:</strong> Short-term (conversation history) and Long-term (distilled facts/profiles).</li>
+      <li><strong>Planning:</strong> Breaking down complex tasks into sub-goals (e.g., ReAct loop).</li>
+      <li><strong>Tools:</strong> External resources like SQL execution, APIs, or Cloud Functions.</li>
+    </ul>
+    <h2>2. Vertex AI Agent Builder: Platform Overview</h2>
+    <ul>
+      <li><strong>ADK (Agent Development Kit):</strong> Open-source SDK (Python, TS, Go) for custom agent logic.</li>
+      <li><strong>Agent Studio:</strong> Low-code UI console for playbooks, grounding, and OpenAPI tools.</li>
+      <li><strong>Agent Engine (Reasoning Engine):</strong> Serverless managed runtime handling scaling, IAM, memory, and tracing.</li>
+    </ul>
+    <h2>3. Managed Capabilities & Memory Patterns</h2>
+    <ul>
+      <li><strong>Sessions:</strong> Managed turn-by-turn state within a single conversation session.</li>
+      <li><strong>Memory Bank:</strong> Persistent cross-session long-term memory of user profiles and facts ($0.25/1k events).</li>
+      <li><strong>Code Execution:</strong> Sandboxed execution of generated code in the runtime environment.</li>
+      <li><strong>A2A Protocol:</strong> Open standard for Agent-to-Agent communication and supervisor-specialist coordination.</li>
+    </ul>
+    <h2>4. IAM & Security</h2>
+    <ul>
+      <li>Access requires binding the service account to the <strong>Vertex AI User</strong> (<code>roles/aiplatform.user</code>) role.</li>
     </ul>
   `
 };
@@ -606,7 +638,8 @@ function loadNotesDoc(filename) {
   bodyEl.classList.add("hidden");
   
   // Attempt to fetch the file from workspace (works if served via server)
-  fetch(`./docs/${filename}`)
+  const fetchUrl = filename === 'Agents.md' ? `./${filename}` : `./docs/${filename}`;
+  fetch(fetchUrl)
     .then(response => {
       if (!response.ok) throw new Error("CORS or File Not Found");
       return response.text();
@@ -639,7 +672,7 @@ function parseSimpleMarkdown(md) {
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
   // Lists (ordered and unordered)
-  html = html.replace(/^\* (.*?)$/gm, '<li>$1</li>');
+  html = html.replace(/^[*\-] (.*?)$/gm, '<li>$1</li>');
   html = html.replace(/^\d+\.\s+(.*?)$/gm, '<li>$1</li>');
   html = html.replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, '<ul>$1</ul>');
   // Tables (simplistic matching for our templates)
@@ -962,9 +995,9 @@ const STUDY_PLANS = {
     { day: 9, title: "Model Registry & Endpoints", desc: "Understand model registry lifecycle, traffic splitting, and private endpoints.", tasks: [ { id: "sp_14_9_1", text: "Read MLOps & Pipelines notes", action: "notes", target: "04_mlops_and_pipelines.md" }, { id: "sp_14_9_2", text: "Take Domain 4 mock questions 10-12", action: "quiz", target: "d4" } ] },
     { day: 10, title: "Model Monitoring (Skew/Drift)", desc: "Set up Vertex AI Model Monitoring to detect statistical feature shifts.", tasks: [ { id: "sp_14_10_1", text: "Read Monitoring & Responsible AI notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" }, { id: "sp_14_10_2", text: "Understand PSI and JS divergence metrics", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
     { day: 11, title: "Explainable AI & Ethics", desc: "Understand attribution methods (Shapley, Integrated Gradients) and fairness.", tasks: [ { id: "sp_14_11_1", text: "Read Monitoring & Responsible AI notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" }, { id: "sp_14_11_2", text: "Take Domain 5 mock questions 13-15", action: "quiz", target: "d5" } ] },
-    { day: 12, title: "Generative AI Ecosystem", desc: "Explore foundation models, Model Garden, and Vertex AI Agent Builder.", tasks: [ { id: "sp_14_12_1", text: "Read Generative AI notes", action: "notes", target: "06_generative_ai.md" }, { id: "sp_14_12_2", text: "Understand grounding and agent builder", action: "notes", target: "06_generative_ai.md" } ] },
+    { day: 12, title: "Generative AI & Agents", desc: "Explore foundation models, Model Garden, and Vertex AI Agents & Reasoning Engines.", tasks: [ { id: "sp_14_12_1", text: "Read AI Agents & Engines notes", action: "notes", target: "Agents.md" }, { id: "sp_14_12_2", text: "Understand ADK, Agent Engine, and Memory Bank", action: "notes", target: "Agents.md" } ] },
     { day: 13, title: "RAG & Custom Model Tuning", desc: "Differentiate Prompt Engineering, RAG, Fine-Tuning, and RLHF paths.", tasks: [ { id: "sp_14_13_1", text: "Read Generative AI notes", action: "notes", target: "06_generative_ai.md" }, { id: "sp_14_13_2", text: "Take Domain 6 mock questions 16-18", action: "quiz", target: "d6" } ] },
-    { day: 14, title: "Final Practice & Mock Exams", desc: "Simulate real exam scenarios and address final revision items.", tasks: [ { id: "sp_14_14_1", text: "Take a Full 25-Question Mock Exam", action: "quiz", target: "all" }, { id: "sp_14_14_2", text: "Review all Cheat Sheets comparison tables", action: "cheatsheet", target: "" } ] }
+    { day: 14, title: "Final Practice & Mock Exams", desc: "Simulate real exam scenarios and address final revision items.", tasks: [ { id: "sp_14_14_1", text: "Take a Full 30-Question Mock Exam", action: "quiz", target: "all" }, { id: "sp_14_14_2", text: "Review all Cheat Sheets comparison tables", action: "cheatsheet", target: "" } ] }
   ],
   28: [
     { day: 1, title: "ML Problem Framing", desc: "Translate business challenges into ML problems.", tasks: [ { id: "sp_28_1_1", text: "Read Framing & Architecture notes", action: "notes", target: "01_framing_and_architecture.md" } ] },
@@ -992,9 +1025,9 @@ const STUDY_PLANS = {
     { day: 23, title: "Model Monitoring", desc: "Track prediction drift and training-serving skew.", tasks: [ { id: "sp_28_23_1", text: "Read skew and drift monitoring notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
     { day: 24, title: "Explainable AI (XAI)", desc: "Examine Shapley, Integrated Gradients, XRAI.", tasks: [ { id: "sp_28_24_1", text: "Read Explainable AI methods", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
     { day: 25, title: "Responsible AI & Ethics", desc: "Audit fairness, demographic parity, and Model Cards.", tasks: [ { id: "sp_28_25_1", text: "Read fairness and privacy notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
-    { day: 26, title: "GCP Generative AI Tools", desc: "Explore Gemini, Model Garden, and Studio.", tasks: [ { id: "sp_28_26_1", text: "Read Generative AI notes", action: "notes", target: "06_generative_ai.md" } ] },
+    { day: 26, title: "AI Agents & Reasoning Engines", desc: "Explore ADK, Agent Studio, and Agent Engine managed runtime.", tasks: [ { id: "sp_28_26_1", text: "Read AI Agents & Engines notes", action: "notes", target: "Agents.md" } ] },
     { day: 27, title: "RAG & Foundation Tuning", desc: "Understand RAG, Vector Search, fine-tuning, filters.", tasks: [ { id: "sp_28_27_1", text: "Study RAG vs SFT fine-tuning", action: "notes", target: "06_generative_ai.md" }, { id: "sp_28_27_2", text: "Take Domain 6 mock questions 16-18", action: "quiz", target: "d6" } ] },
-    { day: 28, title: "Final Exam Simulation", desc: "Pass the full exam simulator.", tasks: [ { id: "sp_28_28_1", text: "Take the full 25-question Mock Exam", action: "quiz", target: "all" } ] }
+    { day: 28, title: "Final Exam Simulation", desc: "Pass the full exam simulator.", tasks: [ { id: "sp_28_28_1", text: "Take the full 30-question Mock Exam", action: "quiz", target: "all" } ] }
   ]
 };
 
