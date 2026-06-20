@@ -1,22 +1,26 @@
 # AGENTS.md
 
 ## Setup commands
-- Start development server: `npm run dev` (runs `docker compose up`)
-- Stop server: `npm run stop` (runs `docker compose down`)
+- Start server: `docker compose up`
+- Stop server: `docker compose down`
 - Run automated test suite: `npm test`
 
 ## Project structure
-- `index.html` / `style.css` / `app.js` — single-page dashboard UI
-- `questions.js` — quiz question bank (GCP PMLE topics)
-- `docker-compose.yml` — serves static files via nginx:alpine on port 3000
+- `server.js` — zero-dependency Node.js HTTP server (serves `public/` + `/api/progress` GET/POST)
+- `docker-compose.yml` — runs server.js via node:22-alpine on port 3000
 - `package.json` — project configuration & scripts
 - `test.js` — automated test suite
-- `docs/` — study guides (01–07 topics, markdown)
-- `src/snippets/` — GCP ML code templates
+- `data/progress.json` — file-backed progress store (git-ignored, created at runtime)
+- `public/` — all web assets (mounted read-only into container)
+  - `index.html` / `style.css` / `app.js` — single-page dashboard UI
+  - `questions.js` — quiz question bank (GCP PMLE topics)
+  - `docs/` — study guides (01–07 topics, markdown)
+  - `src/snippets/` — GCP ML code templates
 
 ## Code style and conventions
 - **Technologies**: Vanilla HTML, Vanilla CSS, pure JavaScript — no frameworks.
-- **Server**: nginx:alpine via Docker Compose only (`docker-compose.yml`). No local Node.js server. Do not add npm dependencies.
+- **Server**: `server.js` (zero-dependency Node stdlib) via Docker Compose only. Do not add npm dependencies.
+- **Persistence**: Progress stored in `progress.json` via `GET/POST /api/progress`. Do not use localStorage for tracker or scheduler state — theme preference only.
 - **Formatting**: GitHub-style markdown for all docs and responses.
 - **Documentation**: Preserve all existing comments/docstrings unrelated to the change.
 - **Links**: Use `file://` scheme for file/symbol links (e.g., `[app.js](file:///path/to/app.js)`).

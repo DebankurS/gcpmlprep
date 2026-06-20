@@ -420,19 +420,39 @@ let quizState = {
   hasAnswered: false,
   selectedOption: null
 };
+let _progressData = { tracker: {}, scheduler: null };
+
+async function loadProgress() {
+  try {
+    const res = await fetch('/api/progress');
+    if (res.ok) _progressData = await res.json();
+  } catch (e) { /* server unavailable, use empty state */ }
+}
+
+async function saveProgress() {
+  try {
+    await fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_progressData)
+    });
+  } catch (e) { /* silent */ }
+}
 
 // =========================================================================
 // 3. INITIALIZATION & ROUTING
 // =========================================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
+  await loadProgress();
   initTrackerState();
   renderChecklist();
   updateProgressUI();
   setupRouting();
   setupQuizEvents();
   setupPlaygroundEvents();
-  
+  initStudyPlan();
+
   // Default: load the first notes doc
   loadNotesDoc("01_framing_and_architecture.md");
 });
@@ -511,11 +531,9 @@ function setupRouting() {
 // 4. TAB 1: TRACKER / CHECKLIST ENGINE
 // =========================================================================
 function initTrackerState() {
-  const stored = localStorage.getItem("gcp-mle-tracker");
-  if (stored) {
-    trackerState = JSON.parse(stored);
+  if (_progressData.tracker && Object.keys(_progressData.tracker).length > 0) {
+    trackerState = _progressData.tracker;
   } else {
-    // Populate default empty state
     DOMAINS_CHECKLIST.forEach(domain => {
       domain.items.forEach(item => {
         trackerState[item.id] = false;
@@ -526,7 +544,8 @@ function initTrackerState() {
 }
 
 function saveTrackerState() {
-  localStorage.setItem("gcp-mle-tracker", JSON.stringify(trackerState));
+  _progressData.tracker = trackerState;
+  saveProgress();
 }
 
 function renderChecklist() {
@@ -1057,11 +1076,9 @@ let schedulerState = {
 };
 
 function initStudyPlan() {
-  const stored = localStorage.getItem("gcp-mle-scheduler");
-  if (stored) {
-    schedulerState = JSON.parse(stored);
+  if (_progressData.scheduler) {
+    schedulerState = _progressData.scheduler;
   } else {
-    // Populate default empty state
     [14, 28].forEach(duration => {
       STUDY_PLANS[duration].forEach(dayData => {
         dayData.tasks.forEach(task => {
@@ -1071,13 +1088,14 @@ function initStudyPlan() {
     });
     saveSchedulerState();
   }
-  
+
   // Set duration buttons and render
   setStudyPlanDuration(schedulerState.activeDuration || 14);
 }
 
 function saveSchedulerState() {
-  localStorage.setItem("gcp-mle-scheduler", JSON.stringify(schedulerState));
+  _progressData.scheduler = schedulerState;
+  saveProgress();
 }
 
 window.setStudyPlanDuration = function(duration) {
@@ -1261,8 +1279,4 @@ function executeSchedulerAction(action, target) {
   }
 }
 
-// Hook Study Plan initialization into DOMContentLoaded
-document.addEventListener("DOMContentLoaded", () => {
-  initStudyPlan();
-});
 

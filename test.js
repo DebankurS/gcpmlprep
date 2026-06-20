@@ -15,7 +15,7 @@ console.log("==================================================\n");
 // ---------------------------------------------------------
 console.log("1. Testing questions.js integrity...");
 try {
-  const { PRACTICE_QUESTIONS } = require('./questions.js');
+  const { PRACTICE_QUESTIONS } = require('./public/questions.js');
   assert.ok(Array.isArray(PRACTICE_QUESTIONS), "PRACTICE_QUESTIONS should be an array");
   assert.ok(PRACTICE_QUESTIONS.length >= 30, `Should contain at least 30 questions (found ${PRACTICE_QUESTIONS.length})`);
   
@@ -39,21 +39,21 @@ try {
 // ---------------------------------------------------------
 console.log("2. Testing required static files existence...");
 const requiredFiles = [
-  'index.html',
-  'style.css',
-  'app.js',
-  'questions.js',
+  'public/index.html',
+  'public/style.css',
+  'public/app.js',
+  'public/questions.js',
   'AGENTS.md',
-  'docs/01_framing_and_architecture.md',
-  'docs/02_data_preparation.md',
-  'docs/03_model_development.md',
-  'docs/04_mlops_and_pipelines.md',
-  'docs/05_monitoring_and_responsible_ai.md',
-  'docs/06_generative_ai.md',
-  'docs/07_agents_and_reasoning_engines.md',
-  'src/snippets/bqml_model.sql',
-  'src/snippets/vertex_pipeline.py',
-  'src/snippets/dataflow_pipeline.py'
+  'public/docs/01_framing_and_architecture.md',
+  'public/docs/02_data_preparation.md',
+  'public/docs/03_model_development.md',
+  'public/docs/04_mlops_and_pipelines.md',
+  'public/docs/05_monitoring_and_responsible_ai.md',
+  'public/docs/06_generative_ai.md',
+  'public/docs/07_agents_and_reasoning_engines.md',
+  'public/src/snippets/bqml_model.sql',
+  'public/src/snippets/vertex_pipeline.py',
+  'public/src/snippets/dataflow_pipeline.py'
 ];
 
 try {
@@ -74,13 +74,13 @@ console.log("2.5. Testing local file hyperlinks inside markdown files...");
 const mdFiles = [
   'README.md',
   'AGENTS.md',
-  'docs/01_framing_and_architecture.md',
-  'docs/02_data_preparation.md',
-  'docs/03_model_development.md',
-  'docs/04_mlops_and_pipelines.md',
-  'docs/05_monitoring_and_responsible_ai.md',
-  'docs/06_generative_ai.md',
-  'docs/07_agents_and_reasoning_engines.md'
+  'public/docs/01_framing_and_architecture.md',
+  'public/docs/02_data_preparation.md',
+  'public/docs/03_model_development.md',
+  'public/docs/04_mlops_and_pipelines.md',
+  'public/docs/05_monitoring_and_responsible_ai.md',
+  'public/docs/06_generative_ai.md',
+  'public/docs/07_agents_and_reasoning_engines.md'
 ];
 
 try {
