@@ -1,0 +1,351 @@
+// GCP Machine Learning Engineer Practice Questions Database
+// This database is used by the Study Dashboard to run mock tests and review questions.
+
+const PRACTICE_QUESTIONS = [
+  // --- DOMAIN 1: FRAMING & ARCHITECTURE ---
+  {
+    id: 1,
+    domain: "Domain 1: Framing & Architecture",
+    question: "You want to build a model to predict whether a customer will churn next month. The historical customer transaction and profile data is stored in BigQuery. Your team consists of SQL analysts who have minimal experience with Python and deep learning frameworks. You need to deploy a model as quickly as possible with minimum data movement. What should you do?",
+    options: [
+      "Export the BigQuery tables to Cloud Storage, train a custom TensorFlow model using Vertex AI Custom Training, and deploy it to a Vertex AI Endpoint.",
+      "Use BigQuery ML to train a logistic regression model directly on the data in BigQuery, and use ML.PREDICT to perform batch inference.",
+      "Import the BigQuery data into Vertex AI AutoML Tabular to train a model, and deploy it to a Vertex AI Endpoint.",
+      "Extract the data using a Cloud Dataflow pipeline, train an XGBoost model in Cloud Dataproc, and save the model to a GCS bucket."
+    ],
+    answer: 1,
+    explanation: "BigQuery ML (BQML) is the best choice here because the data is already in BigQuery, the team consists of SQL analysts (so they can write standard SQL), and it avoids data egress (no data movement), satisfying all constraints of the scenario."
+  },
+  {
+    id: 2,
+    domain: "Domain 1: Framing & Architecture",
+    question: "You are designing an ML system to identify credit card transactions that are fraudulent. The transaction volume is extremely high, and only 0.05% of transactions are fraudulent. The customer service department has a strict constraint: they do not want to block legitimate transactions because it damages customer trust, but they want to flag as many actual fraudulent cases as possible. What evaluation metric should you prioritize during model training?",
+    options: [
+      "Accuracy, because you want the model to be correct as often as possible across all transactions.",
+      "Recall, because you want to capture every single instance of fraud regardless of false alarms.",
+      "Precision, because you want to ensure that if a transaction is flagged as fraud, it is highly likely to be actual fraud, thus minimizing false alarms.",
+      "Mean Absolute Error (MAE), because you want to measure the average magnitude of prediction errors."
+    ],
+    answer: 2,
+    explanation: "The customer service department's constraint is that they do not want to block legitimate transactions (meaning they want to minimize False Positives). Precision is the ratio of True Positives to (True Positives + False Positives). Therefore, prioritizing Precision will minimize False Positives (legitimate transactions being flagged as fraud)."
+  },
+  {
+    id: 3,
+    domain: "Domain 1: Framing & Architecture",
+    question: "You need to build a system that reads scanned invoices in PDF format, extracts the vendor name, invoice date, and total amount, and stores them in a database. Your team has no machine learning engineers and needs a solution with the absolute minimum development effort. Which GCP service should you use?",
+    options: [
+      "Train a custom CNN model on Vertex AI using custom containers to segment the text coordinates.",
+      "Use the Vertex AI Vision API to perform OCR, and then write custom regex scripts to extract the fields.",
+      "Use Document AI with a pre-trained Invoice Parser processor to extract structured invoice entities.",
+      "Load the PDFs into BigQuery Object Tables and write a custom SQL query using BigQuery ML's ML.GENERATE_TEXT function."
+    ],
+    answer: 2,
+    explanation: "Document AI provides pre-trained processors specifically for documents like invoices (Invoice Parser). It extracts key-value pairs (like vendor name, total, date) out of the box with zero custom model training, making it the lowest-effort solution."
+  },
+
+  // --- DOMAIN 2: DATA PREPARATION & PROCESSING ---
+  {
+    id: 4,
+    domain: "Domain 2: Data Preparation & Processing",
+    question: "You are building a custom TensorFlow model for predicting house prices. Your preprocessing includes scaling numerical variables and one-hot encoding categorical variables. During training, you apply these transforms in your Python script. However, in production, client requests sometimes send raw, unscaled values, causing incorrect predictions. This is an example of training-serving skew. How should you prevent this skew?",
+    options: [
+      "Use Cloud Dataflow to preprocess the data in batch before training, and write an equivalent Cloud Function in Node.js to preprocess requests before they hit the endpoint.",
+      "Use TensorFlow Transform (tf.Transform) to define the preprocessing pipeline. Export the preprocessing graph and prepend it directly to the serving model, so the endpoint accepts raw data.",
+      "Increase the regularization parameters (L1/L2) in the TensorFlow model to make it more robust to scale differences.",
+      "Ask clients to implement the scaling equations directly in their client-side application before sending API requests."
+    ],
+    answer: 1,
+    explanation: "TensorFlow Transform (tf.Transform) solves training-serving skew by exporting the preprocessing steps as a TensorFlow computational graph. This graph is exported together with the model, meaning the model endpoint accepts raw inputs and performs the exact same preprocessing under the hood."
+  },
+  {
+    id: 5,
+    domain: "Domain 2: Data Preparation & Processing",
+    question: "You have a streaming pipeline that receives user action events from Cloud Pub/Sub. You need to calculate the click-through rate of ads displayed on a website for the last 10 minutes, updating the calculation every 1 minute. Which windowing strategy in Apache Beam (Cloud Dataflow) should you use?",
+    options: [
+      "Fixed Windows of 10 minutes duration.",
+      "Sliding Windows of 10 minutes duration with a 1 minute slide period.",
+      "Session Windows with a gap duration of 1 minute.",
+      "Global Windows with custom triggers based on element count."
+    ],
+    answer: 1,
+    explanation: "Sliding windows are used when you want a window of size N that updates every M minutes. In this case, you want the last 10 minutes of data (window size) updated every 1 minute (slide period), which corresponds perfectly to a Sliding Window."
+  },
+  {
+    id: 6,
+    domain: "Domain 2: Data Preparation & Processing",
+    question: "Your team is building multiple fraud detection models that all require the same features (e.g., 'number_of_failed_logins_last_24h'). Currently, different data scientists are calculating these features independently, leading to redundant work and inconsistencies in the data. You want to centralize these features. What GCP service should you use?",
+    options: [
+      "BigQuery Materialized Views.",
+      "Vertex AI Feature Store.",
+      "Cloud Bigtable.",
+      "Cloud Storage bucket with parquet files."
+    ],
+    answer: 1,
+    explanation: "Vertex AI Feature Store is specifically designed to solve this problem. It acts as a central repository to organize, store, and serve features. It enables feature sharing and reuse across different models/teams, and serves them both offline (high throughput for training) and online (low latency for predictions)."
+  },
+
+  // --- DOMAIN 3: MODEL DEVELOPMENT ---
+  {
+    id: 7,
+    domain: "Domain 3: Model Development",
+    question: "You are training a deep learning model in TensorFlow on Vertex AI Custom Training. The model size is over 200 GB, which is too large to fit into the memory of a single GPU or even a single VM. You need to distribute the model parameters across multiple servers. Which distribution strategy should you use in tf.distribute?",
+    options: [
+      "tf.distribute.MirroredStrategy",
+      "tf.distribute.TPUStrategy",
+      "tf.distribute.ParameterServerStrategy",
+      "tf.distribute.MultiWorkerMirroredStrategy"
+    ],
+    answer: 2,
+    explanation: "ParameterServerStrategy is designed for multi-machine training where the model weights are too large to fit in a single worker's memory. The model parameters are stored on 'parameter servers' while the gradient computations are performed on 'workers', which fetch weights and send gradients back."
+  },
+  {
+    id: 8,
+    domain: "Domain 3: Model Development",
+    question: "You need to tune the hyperparameters of a custom neural network on Vertex AI. You want to find the optimal combination of learning rate (continuous float), optimizer type (categorical string), and number of layers (discrete integer). You want to minimize the number of trial iterations because training is expensive. Which hyperparameter tuning service should you use?",
+    options: [
+      "Vertex AI Vizier using Bayesian Optimization.",
+      "Run a Grid Search script inside a Cloud Dataproc cluster.",
+      "Run a Random Search script inside a Vertex AI Workbench notebook.",
+      "Use BigQuery ML's built-in grid search tuning options."
+    ],
+    answer: 0,
+    explanation: "Vertex AI Vizier is a managed hyperparameter tuning service. It uses Bayesian Optimization (a black-box optimization technique) to select hyperparameter values. It is highly sample-efficient, finding the optimal combinations in fewer trials compared to Grid Search or Random Search."
+  },
+  {
+    id: 9,
+    domain: "Domain 3: Model Development",
+    question: "You have trained a custom regression model to predict housing prices. During evaluation, you observe that the model performs exceptionally well on the training dataset (very low RMSE) but performs poorly on the validation dataset (very high RMSE). What is the model experiencing, and how can you mitigate this issue?",
+    options: [
+      "Underfitting (High Bias). You should increase the model complexity by adding more hidden layers.",
+      "Overfitting (High Variance). You should add L2 regularization or dropout, or collect more training data.",
+      "Data Leakage. You should combine the training and validation sets to retrain.",
+      "Gradient Explosion. You should implement gradient clipping in the optimizer."
+    ],
+    answer: 1,
+    explanation: "When a model has low training error but high validation error, it is overfitting (high variance). It has memorized the training data and fails to generalize. Correct remedies include regularization (L1/L2), dropout, early stopping, or increasing the volume of training data."
+  },
+
+  // --- DOMAIN 4: MLOPS & PIPELINES ---
+  {
+    id: 10,
+    domain: "Domain 4: MLOps & Pipelines",
+    question: "Your team is building an end-to-end ML pipeline. You want to enforce strict checks on incoming data schemas, compare model accuracy against a threshold before deploying, and ensure that all steps are strictly integrated and validated. The entire pipeline uses TensorFlow. Which SDK should you use for Vertex AI Pipelines?",
+    options: [
+      "Kubeflow Pipelines (KFP) SDK",
+      "TensorFlow Extended (TFX) SDK",
+      "Apache Airflow SDK",
+      "Vertex AI SDK for Python"
+    ],
+    answer: 1,
+    explanation: "TensorFlow Extended (TFX) is an opinionated, production-grade SDK designed specifically for TensorFlow pipelines. It provides pre-built components like ExampleValidator (for schema validation) and Evaluator (for threshold checks and model analysis), making it the best fit for strict validation in a TF environment."
+  },
+  {
+    id: 11,
+    domain: "Domain 4: MLOps & Pipelines",
+    question: "You have trained a new model version (v2) for customer churn. You want to deploy v2 to production but minimize the risk of a regression. You want to route 95% of incoming customer requests to the stable v1 model and 5% to the new v2 model, monitoring the latency and error rates of v2. How should you implement this on Vertex AI?",
+    options: [
+      "Create two separate Vertex AI Endpoints (one for v1, one for v2) and write client-side code that randomly routes requests with a 95/5 split.",
+      "Deploy both model versions (v1 and v2) to the same Vertex AI Endpoint, and configure the endpoint's traffic split option to assign 95% of traffic to v1 and 5% to v2.",
+      "Use Cloud Load Balancing in front of two VM instances hosting the models to distribute traffic.",
+      "Update the Model Registry to make v2 the default version, and set the autoscaling minimum node count of v2 to 1 and v1 to 19."
+    ],
+    answer: 1,
+    explanation: "Vertex AI Endpoints natively support traffic splitting. You can deploy multiple model versions to a single endpoint and assign percentage weights to each (e.g., 95% to v1, 5% to v2). This allows canary deployments without changing client-side API target URLs."
+  },
+  {
+    id: 12,
+    domain: "Domain 4: MLOps & Pipelines",
+    question: "You are designing a continuous training pipeline. Whenever a new batch of labeled image data is uploaded to a specific Cloud Storage bucket, you want to automatically trigger a Vertex AI Pipeline run to retrain your image classifier. What is the most cloud-native way to achieve this with minimal code?",
+    options: [
+      "Write a Cron job running on a Compute Engine VM that polls the bucket every hour for new files and executes a script.",
+      "Configure a Cloud Storage Pub/Sub notification to trigger on file creation, which calls a Cloud Function that executes the Vertex AI Pipeline Job.",
+      "Use Cloud Dataflow to monitor the bucket and trigger the pipeline.",
+      "Train the model inside a BigQuery ML script using the Cloud Storage external table connection."
+    ],
+    answer: 1,
+    explanation: "This is the classic event-driven MLOps architecture on GCP. A file upload to Cloud Storage triggers a Pub/Sub notification or Eventarc event, which triggers a serverless Cloud Function. The Cloud Function uses the Vertex AI SDK to trigger a Pipeline Job."
+  },
+
+  // --- DOMAIN 5: MONITORING & RESPONSIBLE AI ---
+  {
+    id: 13,
+    domain: "Domain 5: Monitoring & Responsible AI",
+    question: "You have a regression model predicting retail store sales. After deployment, you configure Vertex AI Model Monitoring. You want to detect when the statistical distribution of the features sent to the online endpoint shifts away from the distribution of the features in the training dataset. What is this type of shift called, and what does the monitoring service require to detect it?",
+    options: [
+      "Prediction Drift. The monitoring service requires a baseline of the first 7 days of production prediction data.",
+      "Training-Serving Skew. The monitoring service requires access to the original training dataset (stored in GCS or BigQuery) to act as a baseline.",
+      "Concept Drift. The monitoring service requires immediate ground-truth labels for all production predictions.",
+      "Covariate Shift. The monitoring service requires a secondary validation dataset."
+    ],
+    answer: 1,
+    explanation: "Training-serving skew is the difference between training data and serving (production) data. To detect training-serving skew, Vertex AI Model Monitoring compares production requests against the baseline training dataset, which must be accessible (e.g. in BigQuery or GCS)."
+  },
+  {
+    id: 14,
+    domain: "Domain 5: Monitoring & Responsible AI",
+    question: "You have built a deep neural network model for classifying chest X-ray images. The radiologists using the model need to understand *why* the model classified an image as having a specific pathology. They want a visual explanation showing which regions of the X-ray image the model relied on most for its decision. Which Explainable AI method should you use?",
+    options: [
+      "Sampled Shapley, because it works for all black-box models.",
+      "Integrated Gradients, because it is computationally fast.",
+      "XRAI (eXplanation with Robust Alliances for Images), because it highlights image regions (salience maps) for differentiable models.",
+      "Shapley Additive exPlanations (SHAP) tabular explanations."
+    ],
+    answer: 2,
+    explanation: "XRAI is a Google Explainable AI method specifically designed for images. It builds on Integrated Gradients by grouping pixels into segments, creating heatmaps (salience maps) showing exactly which visual regions of the image contributed most to the model's classification."
+  },
+  {
+    id: 15,
+    domain: "Domain 5: Monitoring & Responsible AI",
+    question: "A bank trains a machine learning model to evaluate loan applications. When auditing the model, the compliance team discovers that the model approves loans for applicants from Group A at a much higher rate than for applicants from Group B, even when they have similar credit scores. Which fairness metric is violated here, and what is a standard MLOps practice to document these limitations?",
+    options: [
+      "Equal Opportunity is violated. The limitations should be documented in a Model Card.",
+      "Demographic Parity is violated. The limitations should be documented in a Model Card.",
+      "Accuracy is violated. The limitations should be documented in a README file.",
+      "Recall is violated. The limitations should be documented in a Vertex AI Pipeline log."
+    ],
+    answer: 1,
+    explanation: "Demographic Parity requires that the likelihood of a positive outcome (getting a loan approved) is equal across all groups, regardless of demographic features. When approval rates differ significantly, Demographic Parity is violated. Model Cards are the standard framework for documenting model performance, bias, limits, and ethics."
+  },
+
+  // --- DOMAIN 6: GENERATIVE AI ---
+  {
+    id: 16,
+    domain: "Domain 6: Generative AI",
+    question: "You are developing a customer support chatbot for an online retail store. The chatbot must answer questions about customer-specific orders, return statuses, and store-specific return policies that change frequently. You want to use the Gemini model but ensure it provides accurate, up-to-date, and grounded answers without hallucinating. What architecture should you use?",
+    options: [
+      "Fine-tune the Gemini model using Supervised Fine-Tuning (SFT) on past customer support chats.",
+      "Use Retrieval-Augmented Generation (RAG) by converting store policies and order databases into embeddings, storing them in Vertex AI Vector Search, and passing relevant search context to Gemini at query time.",
+      "Create a larger prompt with 50 few-shot examples showing dummy order resolutions.",
+      "Deploy multiple Gemini endpoints and use a random traffic splitter to evaluate outputs."
+    ],
+    answer: 1,
+    explanation: "Retrieval-Augmented Generation (RAG) is the best pattern for grounding model outputs in private, dynamic, or frequently changing data. By retrieving order statuses and active policies from a database/index and passing them to Gemini as context, you prevent hallucinations and ensure accurate, real-time answers."
+  },
+  {
+    id: 17,
+    domain: "Domain 6: Generative AI",
+    question: "You have a text summarization task. You need to summarize legal contracts. The legal terms are highly technical, and the summaries must follow a specific, rigid JSON schema containing keys like 'party_names', 'effective_date', and 'termination_clauses'. Prompt engineering is not consistently enforcing the JSON structure. What should you do?",
+    options: [
+      "Use Vertex AI Vector Search to find similar summaries.",
+      "Fine-tune the foundation model using Supervised Fine-Tuning (SFT) on a dataset of contracts and their corresponding JSON summaries to learn the structural format.",
+      "Use the Vertex AI Vision API to extract text first.",
+      "Configure safety filters to block non-compliant outputs."
+    ],
+    answer: 1,
+    explanation: "Supervised Fine-Tuning (SFT) is highly effective when you need to teach a foundation model a specific output style, tone, or rigid formatting structure (like a specific JSON schema) that prompt engineering alone cannot reliably enforce."
+  },
+  {
+    id: 18,
+    domain: "Domain 6: Generative AI",
+    question: "You want to deploy an enterprise-grade search system that searches across thousands of internal HR PDFs, Google Drive documents, and internal URLs. The system must allow employees to ask questions in natural language and receive synthesized answers grounded in the company documents. What Google Cloud tool allows you to build this search engine with the least coding?",
+    options: [
+      "Vertex AI Vector Search",
+      "Vertex AI Agent Builder",
+      "BigQuery ML ML.GENERATE_TEXT",
+      "Cloud Dataflow + Custom Gemma model"
+    ],
+    answer: 1,
+    explanation: "Vertex AI Agent Builder is a high-level developer platform that allows you to easily connect Gemini to enterprise data sources (GCS, BigQuery, Google Drive, Websites) and create fully grounded search engines or AI agents with minimal coding."
+  },
+
+  // --- GENERAL GCP ML QUESTIONS (MIXED COMPREHENSIVE) ---
+  {
+    id: 19,
+    domain: "Domain 1: Framing & Architecture",
+    question: "Your team is building a deep learning model for image classification. You have a dataset of 5 million images. You have decided to use Vertex AI Custom Training with custom containers. To speed up training, you want to use multiple VM nodes, each containing 8 NVIDIA A100 GPUs. Which TensorFlow distribution strategy is best suited for this multi-node, multi-GPU setup?",
+    options: [
+      "tf.distribute.MirroredStrategy",
+      "tf.distribute.MultiWorkerMirroredStrategy",
+      "tf.distribute.OneDeviceStrategy",
+      "tf.distribute.experimental.CentralStorageStrategy"
+    ],
+    answer: 1,
+    explanation: "MultiWorkerMirroredStrategy is the multi-worker/multi-node version of MirroredStrategy. It is designed to run training synchronously across multiple machines (workers), each containing one or more GPUs."
+  },
+  {
+    id: 20,
+    domain: "Domain 2: Data Preparation & Processing",
+    question: "You are training a model on a dataset where one of the features is a user's country. The country feature contains 190 unique values. During prediction serving, you notice that the model receives new country values (e.g. newly added regions) that were not present in the training set, causing the model to throw exceptions or predict incorrectly. Which MLOps component or practice should you implement to detect this issue automatically?",
+    options: [
+      "Use Vertex AI Model Monitoring to detect training-serving skew on the country feature.",
+      "Use TFX StatisticsGen to compute prediction metrics.",
+      "Set up an Apache Beam pipeline with Fixed Windows.",
+      "Deploy a custom container to handle error logging manually."
+    ],
+    answer: 0,
+    explanation: "Training-serving skew includes differences in the values of features between training and serving datasets (e.g., a feature value that is present during serving but missing during training). Configuring Vertex AI Model Monitoring on this feature will trigger alerts when a significant skew is detected."
+  },
+  {
+    id: 21,
+    domain: "Domain 4: MLOps & Pipelines",
+    question: "You want to implement a secure prediction pipeline. Your model is deployed to a Vertex AI Endpoint. The client applications calling this endpoint are run on Compute Engine instances within a Virtual Private Cloud (VPC) network. For security reasons, you cannot allow traffic to travel over the public internet, and you must minimize network latency. How should you deploy the endpoint?",
+    options: [
+      "Use Cloud VPN to encrypt predictions sent over the public internet.",
+      "Deploy the model to a Vertex AI Private Endpoint with VPC Network Peering enabled between your VPC and the Vertex AI service network.",
+      "Use Cloud Armor to filter out public requests based on IP addresses.",
+      "Store predictions in a GCS bucket and access them using IAM service accounts."
+    ],
+    answer: 1,
+    explanation: "Vertex AI Private Endpoints use VPC Network Peering to establish a secure, low-latency, private connection between your Google Cloud VPC and the Google network hosting the Vertex AI Endpoint. Traffic remains inside Google's network, meeting the security and latency requirements."
+  },
+  {
+    id: 22,
+    domain: "Domain 5: Monitoring & Responsible AI",
+    question: "You are deploying a custom tabular regression model to predict loan interest rates using Scikit-Learn. You need to configure Explainable AI. The features include credit score, debt-to-income ratio, and income. Which Explainable AI method should you configure in your model definition?",
+    options: [
+      "Integrated Gradients, because it is the most mathematically rigorous for tabular models.",
+      "Sampled Shapley, because the model is built with Scikit-Learn (which is non-differentiable/tabular).",
+      "XRAI, because it supports complex float inputs.",
+      "Vertex AI Vizier, because it tunes feature attributions."
+    ],
+    answer: 1,
+    explanation: "Sampled Shapley is the recommended Explainable AI method for tabular, non-differentiable models such as those built with Scikit-learn (Random Forests, Gradient Boosting) or XGBoost. Integrated Gradients requires a differentiable model (like neural networks)."
+  },
+  {
+    id: 23,
+    domain: "Domain 6: Generative AI",
+    question: "You are setting up safety guidelines for an LLM application utilizing Gemini. You want to ensure that any output that contains sexually explicit content is blocked, but you want to allow medical terms and text. You configure Vertex AI safety settings. What parameter should you adjust?",
+    options: [
+      "The temperature of the model generation.",
+      "The safety threshold for the 'Sexually Explicit' category (e.g., setting it to BLOCK_MEDIUM_AND_ABOVE).",
+      "The frequency penalty parameter.",
+      "Deploy a custom classification model to filter the prompts before calling Gemini."
+    ],
+    answer: 1,
+    explanation: "Vertex AI allows developers to configure safety thresholds for categories like 'Sexually Explicit' content. Setting the safety threshold to BLOCK_MEDIUM_AND_ABOVE will block responses flagged with medium or high probability, while allowing lower-probability occurrences (e.g., standard medical terminology)."
+  },
+  {
+    id: 24,
+    domain: "Domain 3: Model Development",
+    question: "Your custom training script in Vertex AI needs to write custom training logs, checkpoints, and model files. What storage system should you use to write these outputs so they are durable, accessible to other pipeline stages, and do not fill up the VM's local disk?",
+    options: [
+      "Write to local scratch directory `/tmp` on the VM and download them using ssh after training finishes.",
+      "Mount a Cloud Storage (GCS) bucket or write files directly to GCS paths using the tf.io.gfile API.",
+      "Write logs to Cloud Logging and weights to a BigQuery table.",
+      "Install a PostgreSQL database on the training VM to store weights as BLOB data."
+    ],
+    answer: 1,
+    explanation: "Cloud Storage (GCS) is the standard storage system for ML model training artifacts on Google Cloud. Writing checkpoints, tensorboard logs, and model saves to GCS (using tools like tf.io.gfile or direct GCS write paths) ensures durability and makes them available for downstream MLOps stages."
+  },
+  {
+    id: 25,
+    domain: "Domain 4: MLOps & Pipelines",
+    question: "You are reviewing the model lifecycle of your production pipeline. Which service acts as the bridge between model training (Vertex AI Pipelines) and model serving (Vertex AI Endpoints) by storing model artifacts, versions, and metadata?",
+    options: [
+      "Vertex AI Model Registry",
+      "Vertex AI Feature Store",
+      "Artifact Registry",
+      "Cloud Storage"
+    ],
+    answer: 0,
+    explanation: "Vertex AI Model Registry is the central repository for managing model versions, tracking metadata, and deploying models to endpoints. It acts as the bridge between model training pipelines (which output models) and model endpoints (which serve them)."
+  }
+];
+
+// Export to window object for browser access
+if (typeof window !== "undefined") {
+  window.PRACTICE_QUESTIONS = PRACTICE_QUESTIONS;
+}
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { PRACTICE_QUESTIONS };
+}

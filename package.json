@@ -1,0 +1,14 @@
+{
+  "name": "gcp-mle-prep",
+  "version": "1.0.0",
+  "description": "GCP Machine Learning Engineer Certification Study Companion Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {},
+  "author": "",
+  "license": "ISC"
+}
