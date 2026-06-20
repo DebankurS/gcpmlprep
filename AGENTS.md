@@ -9,6 +9,8 @@
 - `index.html` / `style.css` / `app.js` — single-page dashboard UI
 - `questions.js` — quiz question bank (GCP PMLE topics)
 - `server.js` — zero-dependency Node.js static file server
+- `package.json` — project configuration & scripts
+- `test.js` — automated test suite
 - `docs/` — study guides (01–07 topics, markdown)
 - `src/snippets/` — GCP ML code templates
 
@@ -48,3 +50,10 @@ When adding or updating quiz questions in `questions.js`, verify answers against
 - `"Domain 7: Agents & Reasoning Engines"`
 
 Agent/ADK/Agent Engine/A2A questions → Domain 7. GenAI (RAG, fine-tuning, Gemini models, Vector Search) → Domain 6.
+
+## Testing guidelines
+- The project includes an automated test suite in [test.js](file:///Users/debankurs/Desktop/Sandbox/gcpmleprep/test.js) run via `npm test`.
+- **Integrity**: `PRACTICE_QUESTIONS` in [questions.js](file:///Users/debankurs/Desktop/Sandbox/gcpmleprep/questions.js) must be an array of at least 30 questions (currently 38 questions).
+- **Structure**: Each question must have a numeric `id`, a string `domain` matching one of the 7 exact labels, a string `question`, an array of exactly 4 `options`, a numeric `answer` index (0-3), and a string `explanation`.
+- **Static Assets & Hyperlinks**: Tests verify the existence of all core files (HTML, CSS, JS, markdown, and templates) and ensure all local hyperlinks (`./docs/...`, etc.) inside markdown files are valid.
+- **Server Endpoints**: Tests verify endpoint status codes (200 for index, CSS, docs), 404 for missing files, and traversal security.

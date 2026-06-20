@@ -13,7 +13,7 @@ gcpmleprep/
 ├── index.html                  # Study Companion Dashboard UI
 ├── style.css                   # Custom theme and dashboard layout styling
 ├── app.js                      # UI routing, local progress tracker, and quiz engine
-├── questions.js                # Database of 30 practice exam questions + rationales
+├── questions.js                # Database of 38 practice exam questions + rationales
 ├── server.js                   # Zero-dependency local Node.js web server
 ├── package.json                # Project configuration & start scripts
 ├── test.js                     # Automated test suite (database & HTTP integration)
@@ -41,7 +41,7 @@ We have included a premium **Study Dashboard** to consolidate your notes, track 
 ### Features
 1.  **Domain Progress Tracker:** Checklist of all core certification items. Checked topics are persisted in your browser's local storage and update your overall completion scores.
 2.  **Interactive Study Guides:** A reader interface allowing you to read all seven study guide files right from the app.
-3.  **Mock Exam Quiz Center:** Practice test engine containing 30 custom exam-realistic questions. Supports a "Quick Practice" mode (10 random questions) and "Domain-Specific" modes. Provides instant feedback and detailed explanations for every question.
+3.  **Mock Exam Quiz Center:** Practice test engine containing 38 custom exam-realistic questions. Supports a "Quick Practice" mode (10 random questions) and "Domain-Specific" modes. Provides instant feedback and detailed explanations for every question.
 4.  **Cheat Sheets:** Quick-reference comparison charts (e.g. database choice, metrics selection, drift vs. skew).
 5.  **Code Playground:** Built-in viewer for copying and reviewing standard GCP ML code snippets.
 
