@@ -43,7 +43,7 @@ const requiredFiles = [
   'style.css',
   'app.js',
   'questions.js',
-  'Agents.md',
+  'AGENTS.md',
   'docs/01_framing_and_architecture.md',
   'docs/02_data_preparation.md',
   'docs/03_model_development.md',
@@ -72,7 +72,7 @@ try {
 console.log("2.5. Testing local file hyperlinks inside markdown files...");
 const mdFiles = [
   'README.md',
-  'Agents.md',
+  'AGENTS.md',
   'docs/01_framing_and_architecture.md',
   'docs/02_data_preparation.md',
   'docs/03_model_development.md',

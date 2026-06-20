@@ -5,13 +5,25 @@
 - Start local development server: `npm run dev`
 - Run automated test suite: `npm test`
 
+## Project structure
+- `index.html` / `style.css` / `app.js` — single-page dashboard UI
+- `questions.js` — quiz question bank (GCP PMLE topics)
+- `server.js` — zero-dependency Node.js static file server
+- `docs/` — study guides (01–07 topics, markdown)
+- `src/snippets/` — GCP ML code templates
+
 ## Code style and conventions
-- **Technologies**: Vanilla HTML, Vanilla CSS, and pure JavaScript.
-- **Node.js**: Zero-dependency local Node.js web server (`server.js`).
-- **Formatting**: Keep responses and files formatted using GitHub-style markdown.
-- **Documentation**: Maintain documentation integrity. Preserve all existing comments and docstrings that are unrelated to code changes.
-- **Links**: Create clickable links for all files and code symbols (classes, types, functions, structs) using GitHub-style markdown links with the `file://` scheme (e.g., [filename](file:///path/to/file)).
+- **Technologies**: Vanilla HTML, Vanilla CSS, pure JavaScript — no frameworks.
+- **Node.js**: Zero-dependency server (`server.js`). Do not add npm dependencies.
+- **Formatting**: GitHub-style markdown for all docs and responses.
+- **Documentation**: Preserve all existing comments/docstrings unrelated to the change.
+- **Links**: Use `file://` scheme for file/symbol links (e.g., `[app.js](file:///path/to/app.js)`).
+
+## Fetching latest content
+- Before editing anything that references GCP APIs, Vertex AI, or Cloud ML services: fetch the current official docs to verify API accuracy (GCP product names and SDK signatures change frequently).
+- Before editing anything that references Claude Code or Anthropic APIs: use the `claude-api` skill or fetch current Anthropic docs — never rely on training-data knowledge for model IDs, pricing, or parameter names.
 
 ## Project context and guidelines
+GCP Professional Machine Learning Engineer (PMLE) certification study companion. Interactive dashboard with progress tracking, quiz engine, and GCP ML code templates.
 
-GCP Professional Machine Learning Engineer (PMLE) certification study companion. Interactive dashboard with progress tracking, quiz engine, and GCP ML code templates. Study guides in `docs/`, code snippets in `src/snippets/`.
+When adding or updating quiz questions in `questions.js`, verify answers against current GCP documentation — the PMLE exam tracks GCP product changes.

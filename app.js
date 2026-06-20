@@ -226,32 +226,50 @@ const NOTES_OFFLINE_FALLBACK = {
       <li><strong>Safety Filters:</strong> Configurable block levels (e.g., BLOCK_MEDIUM_AND_ABOVE) for Harmful, Hate, Harassment, and Sexually Explicit content.</li>
     </ul>
   `,
-  "Agents.md": `
+  "07_agents_and_reasoning_engines.md": `
     <h1>GCP AI Agents & Reasoning Engines Study Guide</h1>
     <p>This guide covers the architectural design, implementation, and deployment of <strong>AI Agents and Reasoning Engines</strong> on Google Cloud Platform (GCP)—a critical topic in the updated GCP Professional Machine Learning Engineer exam.</p>
     <h2>1. Conceptual Framework: What is an Agent?</h2>
     <ul>
       <li><strong>Brain:</strong> The LLM (e.g., Gemini 2.0 Flash, Gemini 2.5 Pro) that performs reasoning.</li>
-      <li><strong>Memory:</strong> Short-term (conversation history) and Long-term (distilled facts/profiles).</li>
-      <li><strong>Planning:</strong> Breaking down complex tasks into sub-goals (e.g., ReAct loop).</li>
+      <li><strong>Memory:</strong> Short-term (conversation history) and Long-term (distilled facts/profiles via Agent Engine Memory Bank).</li>
+      <li><strong>Planning:</strong> Breaking down complex tasks into sub-goals (e.g., ReAct loop: Reasoning → Action → Observation).</li>
       <li><strong>Tools:</strong> External resources like SQL execution, APIs, or Cloud Functions.</li>
     </ul>
     <h2>2. Vertex AI Agent Builder: Platform Overview</h2>
     <ul>
-      <li><strong>ADK (Agent Development Kit):</strong> Open-source SDK (Python, TS, Go) for custom agent logic.</li>
-      <li><strong>Agent Studio:</strong> Low-code UI console for playbooks, grounding, and OpenAPI tools.</li>
-      <li><strong>Agent Engine (Reasoning Engine):</strong> Serverless managed runtime handling scaling, IAM, memory, and tracing.</li>
+      <li><strong>ADK (Agent Development Kit):</strong> Open-source, model-agnostic SDK (Python, Go, Java, TypeScript) for custom agent logic and multi-agent systems.</li>
+      <li><strong>Agent Studio:</strong> Low-code visual canvas (Playbooks + Agent Designer) for conversational designers. Supports OpenAPI Tools and Data Store grounding.</li>
+      <li><strong>Agent Engine (formerly Reasoning Engine):</strong> Serverless managed runtime handling autoscaling, IAM, Sessions, Memory Bank, Code Execution, and Tracing.</li>
     </ul>
-    <h2>3. Managed Capabilities & Memory Patterns</h2>
+    <h2>3. Agent Engine Capabilities (GA Status)</h2>
     <ul>
-      <li><strong>Sessions:</strong> Managed turn-by-turn state within a single conversation session.</li>
-      <li><strong>Memory Bank:</strong> Persistent cross-session long-term memory of user profiles and facts ($0.25/1k events).</li>
-      <li><strong>Code Execution:</strong> Sandboxed execution of generated code in the runtime environment.</li>
-      <li><strong>A2A Protocol:</strong> Open standard for Agent-to-Agent communication and supervisor-specialist coordination.</li>
+      <li><strong>Sessions (GA):</strong> Managed turn-by-turn state within a single conversation session. No external DB needed.</li>
+      <li><strong>Memory Bank (GA):</strong> Persistent cross-session long-term memory. $0.25/1,000 stored events.</li>
+      <li><strong>Code Execution (GA):</strong> Sandboxed execution of generated code inside the runtime.</li>
+      <li><strong>Tracing:</strong> Unified Trace Viewer in Cloud Console for debugging agent reasoning paths.</li>
     </ul>
-    <h2>4. IAM & Security</h2>
+    <h2>4. Multi-Agent Systems & A2A Protocol</h2>
     <ul>
-      <li>Access requires binding the service account to the <strong>Vertex AI User</strong> (<code>roles/aiplatform.user</code>) role.</li>
+      <li><strong>A2A Protocol:</strong> Open standard (Linux Foundation) for Agent-to-Agent communication and supervisor-specialist coordination.</li>
+      <li><strong>Hierarchical:</strong> Supervisor agent delegates sub-tasks to specialist agents.</li>
+      <li><strong>Parallel:</strong> Multiple agents run concurrently; orchestrator merges results.</li>
+      <li><strong>LangGraph on Agent Engine:</strong> Deploy stateful multi-agent graphs; Agent Engine handles the runtime.</li>
+    </ul>
+    <h2>5. Function Calling & Tool Use</h2>
+    <p>Gemini outputs a structured JSON object (function name + args) — it does NOT execute the function. The client app executes the function, then sends back a <code>functionResponse</code> for the model to generate the final answer.</p>
+    <h2>6. IAM & Security</h2>
+    <ul>
+      <li>Bind invoking service account to <strong>Vertex AI User</strong> (<code>roles/aiplatform.user</code>) on the Agent Engine resource.</li>
+      <li>Agent Engine endpoints are private by default — require authenticated GCP service account tokens.</li>
+    </ul>
+    <h2>7. Exam Decision Matrix</h2>
+    <ul>
+      <li><strong>Conversational designer, GCS PDFs, REST APIs:</strong> Agent Studio (Playbooks + Data Stores + OpenAPI Tools).</li>
+      <li><strong>Custom multi-agent LangGraph with code execution:</strong> ADK + Agent Engine with Code Execution.</li>
+      <li><strong>Cross-session user preferences:</strong> Agent Engine Memory Bank (GA).</li>
+      <li><strong>High-throughput real-time chat context:</strong> Memorystore (Redis).</li>
+      <li><strong>Agent-to-agent coordination across teams:</strong> A2A Protocol.</li>
     </ul>
   `
 };
@@ -638,7 +656,7 @@ function loadNotesDoc(filename) {
   bodyEl.classList.add("hidden");
   
   // Attempt to fetch the file from workspace (works if served via server)
-  const fetchUrl = filename === 'Agents.md' ? `./${filename}` : `./docs/${filename}`;
+  const fetchUrl = `./docs/${filename}`;
   fetch(fetchUrl)
     .then(response => {
       if (!response.ok) throw new Error("CORS or File Not Found");
@@ -995,7 +1013,7 @@ const STUDY_PLANS = {
     { day: 9, title: "Model Registry & Endpoints", desc: "Understand model registry lifecycle, traffic splitting, and private endpoints.", tasks: [ { id: "sp_14_9_1", text: "Read MLOps & Pipelines notes", action: "notes", target: "04_mlops_and_pipelines.md" }, { id: "sp_14_9_2", text: "Take Domain 4 mock questions 10-12", action: "quiz", target: "d4" } ] },
     { day: 10, title: "Model Monitoring (Skew/Drift)", desc: "Set up Vertex AI Model Monitoring to detect statistical feature shifts.", tasks: [ { id: "sp_14_10_1", text: "Read Monitoring & Responsible AI notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" }, { id: "sp_14_10_2", text: "Understand PSI and JS divergence metrics", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
     { day: 11, title: "Explainable AI & Ethics", desc: "Understand attribution methods (Shapley, Integrated Gradients) and fairness.", tasks: [ { id: "sp_14_11_1", text: "Read Monitoring & Responsible AI notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" }, { id: "sp_14_11_2", text: "Take Domain 5 mock questions 13-15", action: "quiz", target: "d5" } ] },
-    { day: 12, title: "Generative AI & Agents", desc: "Explore foundation models, Model Garden, and Vertex AI Agents & Reasoning Engines.", tasks: [ { id: "sp_14_12_1", text: "Read AI Agents & Engines notes", action: "notes", target: "Agents.md" }, { id: "sp_14_12_2", text: "Understand ADK, Agent Engine, and Memory Bank", action: "notes", target: "Agents.md" } ] },
+    { day: 12, title: "Generative AI & Agents", desc: "Explore foundation models, Model Garden, and Vertex AI Agents & Reasoning Engines.", tasks: [ { id: "sp_14_12_1", text: "Read AI Agents & Engines notes", action: "notes", target: "07_agents_and_reasoning_engines.md" }, { id: "sp_14_12_2", text: "Understand ADK, Agent Engine, and Memory Bank", action: "notes", target: "07_agents_and_reasoning_engines.md" } ] },
     { day: 13, title: "RAG & Custom Model Tuning", desc: "Differentiate Prompt Engineering, RAG, Fine-Tuning, and RLHF paths.", tasks: [ { id: "sp_14_13_1", text: "Read Generative AI notes", action: "notes", target: "06_generative_ai.md" }, { id: "sp_14_13_2", text: "Take Domain 6 mock questions 16-18", action: "quiz", target: "d6" } ] },
     { day: 14, title: "Final Practice & Mock Exams", desc: "Simulate real exam scenarios and address final revision items.", tasks: [ { id: "sp_14_14_1", text: "Take a Full 30-Question Mock Exam", action: "quiz", target: "all" }, { id: "sp_14_14_2", text: "Review all Cheat Sheets comparison tables", action: "cheatsheet", target: "" } ] }
   ],
@@ -1025,7 +1043,7 @@ const STUDY_PLANS = {
     { day: 23, title: "Model Monitoring", desc: "Track prediction drift and training-serving skew.", tasks: [ { id: "sp_28_23_1", text: "Read skew and drift monitoring notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
     { day: 24, title: "Explainable AI (XAI)", desc: "Examine Shapley, Integrated Gradients, XRAI.", tasks: [ { id: "sp_28_24_1", text: "Read Explainable AI methods", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
     { day: 25, title: "Responsible AI & Ethics", desc: "Audit fairness, demographic parity, and Model Cards.", tasks: [ { id: "sp_28_25_1", text: "Read fairness and privacy notes", action: "notes", target: "05_monitoring_and_responsible_ai.md" } ] },
-    { day: 26, title: "AI Agents & Reasoning Engines", desc: "Explore ADK, Agent Studio, and Agent Engine managed runtime.", tasks: [ { id: "sp_28_26_1", text: "Read AI Agents & Engines notes", action: "notes", target: "Agents.md" } ] },
+    { day: 26, title: "AI Agents & Reasoning Engines", desc: "Explore ADK, Agent Studio, and Agent Engine managed runtime.", tasks: [ { id: "sp_28_26_1", text: "Read AI Agents & Engines notes", action: "notes", target: "07_agents_and_reasoning_engines.md" } ] },
     { day: 27, title: "RAG & Foundation Tuning", desc: "Understand RAG, Vector Search, fine-tuning, filters.", tasks: [ { id: "sp_28_27_1", text: "Study RAG vs SFT fine-tuning", action: "notes", target: "06_generative_ai.md" }, { id: "sp_28_27_2", text: "Take Domain 6 mock questions 16-18", action: "quiz", target: "d6" } ] },
     { day: 28, title: "Final Exam Simulation", desc: "Pass the full exam simulator.", tasks: [ { id: "sp_28_28_1", text: "Take the full 30-question Mock Exam", action: "quiz", target: "all" } ] }
   ]
