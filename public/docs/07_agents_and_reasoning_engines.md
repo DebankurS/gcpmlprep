@@ -106,10 +106,12 @@ remote_agent = reasoning_engines.ReasoningEngine.create(
 ### Query Deployed Agent
 ```python
 import vertexai
+from vertexai.preview import reasoning_engines
 
-client = vertexai.Client(project="my-project", location="us-central1")
-remote = client.agent_engines.get(
-    name="projects/my-project/locations/us-central1/reasoningEngines/RESOURCE_ID"
+vertexai.init(project="my-project", location="us-central1")
+
+remote = reasoning_engines.ReasoningEngine(
+    "projects/my-project/locations/us-central1/reasoningEngines/RESOURCE_ID"
 )
 response = remote.query(input="What is the current Gemini pricing?")
 ```
