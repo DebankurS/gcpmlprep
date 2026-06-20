@@ -638,9 +638,10 @@ function parseSimpleMarkdown(md) {
   // Bold
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  // Lists
+  // Lists (ordered and unordered)
   html = html.replace(/^\* (.*?)$/gm, '<li>$1</li>');
-  html = html.replace(/^(<li>.*?<\/li>)\n/g, '<ul>$1</ul>\n'); // wrap groups (basic)
+  html = html.replace(/^\d+\.\s+(.*?)$/gm, '<li>$1</li>');
+  html = html.replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, '<ul>$1</ul>');
   // Tables (simplistic matching for our templates)
   // Replace table syntax with basic HTML tags
   const lines = html.split('\n');
@@ -666,6 +667,10 @@ function parseSimpleMarkdown(md) {
         lines[i] = tableHtml + '\n' + lines[i];
       }
     }
+  }
+  if (inTable) {
+    tableHtml += '</table>';
+    lines.push(tableHtml);
   }
   html = lines.join('\n');
   // Blockquotes / Alerts

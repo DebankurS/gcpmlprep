@@ -251,7 +251,7 @@ const PRACTICE_QUESTIONS = [
   // --- GENERAL GCP ML QUESTIONS (MIXED COMPREHENSIVE) ---
   {
     id: 19,
-    domain: "Domain 1: Framing & Architecture",
+    domain: "Domain 3: Model Development",
     question: "Your team is building a deep learning model for image classification. You have a dataset of 5 million images. You have decided to use Vertex AI Custom Training with custom containers. To speed up training, you want to use multiple VM nodes, each containing 8 NVIDIA A100 GPUs. Which TensorFlow distribution strategy is best suited for this multi-node, multi-GPU setup?",
     options: [
       "tf.distribute.MirroredStrategy",
