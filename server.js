@@ -5,6 +5,9 @@ const path = require('path');
 const PORT = 3000;
 const ROOT = path.join(__dirname, 'public');
 const PROGRESS_FILE = path.join(__dirname, 'data', 'progress.json');
+const POST_BODY_MAX = 1_000_000; // 1MB
+
+fs.mkdirSync(path.dirname(PROGRESS_FILE), { recursive: true });
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -29,11 +32,22 @@ http.createServer((req, res) => {
       res.end(data);
     } else if (req.method === 'POST') {
       let body = '';
-      req.on('data', chunk => { body += chunk; });
+      let size = 0;
+      req.on('data', chunk => {
+        size += chunk.length;
+        if (size > POST_BODY_MAX) {
+          res.writeHead(413);
+          res.end('{"error":"payload too large"}');
+          req.destroy();
+          return;
+        }
+        body += chunk;
+      });
       req.on('end', () => {
+        if (res.writableEnded) return;
         try {
-          JSON.parse(body);
-          fs.writeFileSync(PROGRESS_FILE, body);
+          const parsed = JSON.parse(body);
+          fs.writeFileSync(PROGRESS_FILE, JSON.stringify(parsed));
           res.writeHead(200);
           res.end('{"ok":true}');
         } catch {

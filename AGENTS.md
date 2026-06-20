@@ -1,9 +1,9 @@
 # AGENTS.md
 
 ## Setup commands
-- Start server: `docker compose up`
+- Start server: `docker compose up -d`
 - Stop server: `docker compose down`
-- Run automated test suite: `npm test`
+- Run automated test suite: `docker compose up -d && npm test && docker compose down`
 
 ## Project structure
 - `server.js` — zero-dependency Node.js HTTP server (serves `public/` + `/api/progress` GET/POST)
@@ -57,7 +57,8 @@ Agent/ADK/Agent Engine/A2A questions → Domain 7. GenAI (RAG, fine-tuning, Gemi
 
 ## Testing guidelines
 - The project includes an automated test suite in [test.js](file:///Users/debankurs/Desktop/Sandbox/gcpmleprep/test.js) run via `npm test`.
+- **Always use Docker Compose** to spin up the server before running tests and tear it down after: `docker compose up -d && npm test && docker compose down`. Never run `node server.js` directly for testing.
 - **Integrity**: `PRACTICE_QUESTIONS` in [questions.js](file:///Users/debankurs/Desktop/Sandbox/gcpmleprep/questions.js) must be an array of at least 30 questions (currently 38 questions).
 - **Structure**: Each question must have a numeric `id`, a string `domain` matching one of the 7 exact labels, a string `question`, an array of exactly 4 `options`, a numeric `answer` index (0-3), and a string `explanation`.
 - **Static Assets & Hyperlinks**: Tests verify the existence of all core files (HTML, CSS, JS, markdown, and templates) and ensure all local hyperlinks (`./docs/...`, etc.) inside markdown files are valid.
-- **Server Endpoints**: Tests verify endpoint status codes (200 for index, CSS, docs), 404 for missing files, and traversal security.
+- **Server Endpoints**: Tests verify endpoint status codes (200 for index, CSS, docs), 404 for missing files, traversal security, and POST `/api/progress` round-trip.

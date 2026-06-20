@@ -125,8 +125,35 @@ const testUrl = (urlPath) => {
         });
       });
     }).on('error', (err) => {
-      reject(err);
+      if (err.code === 'ECONNREFUSED') {
+        reject(new Error('Server not running on http://localhost:3000 — run `node server.js` first'));
+      } else {
+        reject(err);
+      }
     });
+  });
+};
+
+const postJson = (urlPath, payload) => {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const req = http.request(`http://localhost:3000${urlPath}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => resolve({ statusCode: res.statusCode, data }));
+    });
+    req.on('error', (err) => {
+      if (err.code === 'ECONNREFUSED') {
+        reject(new Error('Server not running on http://localhost:3000 — run `node server.js` first'));
+      } else {
+        reject(err);
+      }
+    });
+    req.write(body);
+    req.end();
   });
 };
 
@@ -163,13 +190,45 @@ async function runServerTests() {
     // Let's assert that the status code is either 200 (if resolved within workspace safely) or 403 (forbidden).
     assert.ok([200, 403, 404].includes(resTraversal.statusCode), "Traversal attempt should be safely handled");
 
+    // Test POST /api/progress (save + retrieve round-trip)
+    console.log("Testing POST /api/progress ...");
+    const payload = { tracker: { d1_1: true }, scheduler: null };
+    const resPost = await postJson('/api/progress', payload);
+    assert.strictEqual(resPost.statusCode, 200, "POST /api/progress should return 200");
+    assert.deepStrictEqual(JSON.parse(resPost.data), { ok: true }, "POST should return {ok:true}");
+
+    // Verify the saved data is retrievable
+    console.log("Testing GET /api/progress after POST ...");
+    const resGet = await testUrl('/api/progress');
+    assert.strictEqual(resGet.statusCode, 200, "GET /api/progress should return 200");
+    assert.deepStrictEqual(JSON.parse(resGet.data), payload, "GET should return the previously saved payload");
+
+    // Test POST /api/progress with invalid JSON
+    console.log("Testing POST /api/progress with invalid JSON ...");
+    const resBadPost = await postJson('/api/progress', null).catch(() => null);
+    // Send raw invalid body manually
+    const resMalformed = await new Promise((resolve, reject) => {
+      const body = 'not-json';
+      const req = http.request('http://localhost:3000/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => resolve({ statusCode: res.statusCode, data }));
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+    assert.strictEqual(resMalformed.statusCode, 400, "Malformed JSON should return 400");
+
     console.log("✅ All HTTP server integration tests passed!\n");
     console.log("==================================================");
     console.log("🎉 ALL TESTS PASSED SUCCESSFULLY!");
     console.log("==================================================");
   } catch (e) {
-    console.error("❌ Integration tests failed. Is the server running on http://localhost:3000?");
-    console.error(e);
+    console.error("❌ Integration tests failed:", e.message);
     process.exit(1);
   }
 }

@@ -4,7 +4,7 @@
   "description": "GCP Machine Learning Engineer Certification Study Companion Web App",
   "main": "server.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "docker compose up -d --wait && node test.js; docker compose down"
   },
   "dependencies": {},
   "author": "",

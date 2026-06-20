@@ -9,3 +9,9 @@ services:
       - ./data:/app/data
     working_dir: /app
     command: node server.js
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 2s
+      timeout: 3s
+      retries: 5
+      start_period: 3s

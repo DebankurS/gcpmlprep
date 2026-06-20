@@ -449,6 +449,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderChecklist();
   updateProgressUI();
   setupRouting();
+  setupNotesMenu();
   setupQuizEvents();
   setupPlaygroundEvents();
   initStudyPlan();
@@ -653,14 +654,14 @@ function updateProgressUI() {
 // =========================================================================
 // 5. TAB 2: STUDY NOTES ENGINE
 // =========================================================================
-const notesMenuList = document.getElementById("notes-menu-list");
-if (notesMenuList) {
+function setupNotesMenu() {
+  const notesMenuList = document.getElementById("notes-menu-list");
+  if (!notesMenuList) return;
   const listItems = notesMenuList.querySelectorAll("li");
   listItems.forEach(item => {
     item.addEventListener("click", () => {
       listItems.forEach(li => li.classList.remove("active"));
       item.classList.add("active");
-      
       const docName = item.getAttribute("data-doc");
       loadNotesDoc(docName);
     });
