@@ -23,88 +23,169 @@ In the context of Vertex AI, an **AI Agent** is an autonomous system that uses a
       +------------+          +------------+          +------------+
 ```
 
-1.  **Brain:** The LLM (e.g., Gemini) that performs cognitive tasks, reasoning, and instruction-following.
+1.  **Brain:** The LLM (e.g., Gemini 2.0 Flash, Gemini 2.5 Pro) that performs cognitive tasks, reasoning, and instruction-following.
 2.  **Memory:**
     *   *Short-term:* Conversation context (chat history) passed within the prompt window.
-    *   *Long-term:* Storing user profiles and historical states across sessions.
+    *   *Long-term:* Storing user profiles and historical states across sessions (Agent Engine Memory Bank).
 3.  **Planning:** Breaking down complex tasks into sub-goals (e.g., ReAct loop: *Reasoning -> Action -> Observation*).
 4.  **Tools:** Access to external resources (e.g., executing SQL, invoking APIs via OpenAPI schemas, calling Cloud Functions).
 
 ---
 
-## 2. Agent Builder vs. Reasoning Engine (Exam Core)
+## 2. Vertex AI Agent Builder: Platform Overview (Exam Core)
 
-Google Cloud provides two primary paths for building agents. Choosing the right one based on developer skill set and customization requirements is a common exam pattern.
+**Vertex AI Agent Builder** is now the **umbrella product** encompassing three distinct components. Understanding this structure is critical for the exam.
 
-| Feature | Vertex AI Agent Builder | Vertex AI Reasoning Engine |
+```
++---------------------------------------------------------------+
+|              Vertex AI Agent Builder                          |
+|                                                               |
+|  +-------------------+  +-----------------+  +-------------+ |
+|  |        ADK        |  |  Agent Studio   |  |Agent Engine | |
+|  | (code-first SDK)  |  | (low-code UI)   |  | (runtime)   | |
+|  +-------------------+  +-----------------+  +-------------+ |
++---------------------------------------------------------------+
+```
+
+| Component | Purpose | Best For |
 | :--- | :--- | :--- |
-| **Pace / Coding** | **No-code / Low-code** configuration UI. | **Code-first** development in Python (SDK). |
-| **Orchestration** | Configured via **Playbooks** (natural language instructions). | Programmed using frameworks like **LangChain**, LlamaIndex, or custom code. |
-| **Hosting** | Fully managed, serverless agent runner. | Deploys local Python agent code as a microservice on Vertex AI. |
-| **Grounding** | Integrates directly with Vertex AI Search (data stores). | Handled programmatically via retrievers or custom vector search APIs. |
-| **Best For** | Business logic, customer support bots, data search portals. | Complex software engineering loops, custom agent loops, research. |
+| **ADK** (Agent Development Kit) | Open-source framework for building agents in Python, Go, Java, TypeScript. Model-agnostic. | Custom agent logic, multi-agent systems, LangGraph/LangChain integration. |
+| **Agent Studio** | Low-code visual canvas (Playbooks + Agent Designer in Cloud Console). | Conversational designers, minimal Python engineering resources. |
+| **Agent Engine** | Managed, serverless runtime for deploying agents at scale. Handles autoscaling, IAM, Sessions, Memory Bank, Code Execution. | Production deployment of any agent (ADK, LangChain, custom Python). |
+
+> **Exam trap:** "Reasoning Engine" is the old name for Agent Engine. Both names may appear on the exam. The REST resource path (`projects/locations/reasoningEngines`) still uses the old name.
 
 ---
 
-## 3. Vertex AI Agent Builder
+## 3. ADK — Agent Development Kit
 
-**Agent Builder** allows developers to build enterprise-ready agents grounded in company data.
+**ADK** is Google's open-source, code-first framework for building agents. It is model-agnostic (works with Gemini, Claude, Gemma, etc.) and framework-agnostic (works standalone, with LangChain, or with LangGraph).
+
+### Key Concepts
+- **Agent**: Core reasoning unit wrapping an LLM + tools + instructions.
+- **Tool**: Any Python function decorated with `@tool` that the agent can call.
+- **Runner**: Executes the agent loop (ReAct, sequential, parallel, custom).
+- **Multi-agent**: ADK natively supports hierarchical and parallel multi-agent graphs.
+
+### Install
+```bash
+pip install --upgrade google-cloud-aiplatform[agent_engines,adk]>=1.112
+```
+
+### Minimal ADK Agent Example
+```python
+from google.adk.agents import Agent
+from google.adk.tools import google_search
+
+root_agent = Agent(
+    name="research_agent",
+    model="gemini-2.0-flash",
+    description="Answers questions using Google Search.",
+    instruction="Search the web to answer the user's question accurately.",
+    tools=[google_search],
+)
+```
+
+### Deploy to Agent Engine
+```python
+import vertexai
+from vertexai.preview import reasoning_engines  # ponytail: old import still works
+
+vertexai.init(project="my-project", location="us-central1")
+
+# Wrap and deploy
+app = reasoning_engines.AdkApp(agent=root_agent, enable_tracing=True)
+
+remote_agent = reasoning_engines.ReasoningEngine.create(
+    app,
+    requirements=["google-cloud-aiplatform[agent_engines,adk]>=1.112"],
+    display_name="research-agent-prod",
+)
+```
+
+### Query Deployed Agent
+```python
+import vertexai
+
+client = vertexai.Client(project="my-project", location="us-central1")
+remote = client.agent_engines.get(
+    name="projects/my-project/locations/us-central1/reasoningEngines/RESOURCE_ID"
+)
+response = remote.query(input="What is the current Gemini pricing?")
+```
+
+---
+
+## 4. Agent Studio (Low-Code Path)
+
+**Agent Studio** (formerly the Playbook-based Agent Builder UI) allows non-engineers to build agents without writing code.
 
 ### Key Components
-1.  **Playbooks:** Instead of writing complex state machine code (like Dialogflow CX pages), you write playbooks using natural language.
-    *   *Example Instruction:* "You are a reservation assistant. First, ask the user for their name and order ID. If they want to cancel, use the CancelOrder tool. If they want to change the date, verify availability using the CheckAvailability tool."
-2.  **Data Stores (Grounding):**
-    *   Connect the agent to Google Cloud Storage (PDFs, HTML), BigQuery, or web URLs.
-    *   The agent uses RAG under the hood to answer questions *only* based on the connected data stores.
-3.  **Tools:**
-    *   **OpenAPI Tool:** Defines REST API endpoints (via OpenAPI JSON/YAML) that the agent can call to perform actions (e.g., checking a database).
-    *   **Vertex AI Extensions:** Pre-built integrations (e.g., Google Search, Web Interpreter code runner).
+1.  **Playbooks:** Natural language instructions for the agent.
+    *   *Example:* "You are a reservation assistant. Ask for name and order ID. Use `CancelOrder` tool for cancellations. Use `CheckAvailability` tool for date changes."
+2.  **Agent Designer:** Visual drag-and-drop canvas in the Cloud Console (Preview, Dec 2025) for designing agent flows graphically.
+3.  **Data Stores (Grounding):**
+    *   Connect to GCS (PDFs, HTML), BigQuery, or web URLs.
+    *   Uses RAG under the hood — answers grounded in connected data only.
+4.  **Tools:**
+    *   **OpenAPI Tool:** Defines REST API endpoints (via OpenAPI JSON/YAML) the agent can call.
+    *   **Vertex AI Extensions:** Pre-built integrations (Google Search, Web Interpreter code runner).
 
 ---
 
-## 4. Vertex AI Reasoning Engine (Template-based Agent)
+## 5. Agent Engine — Managed Runtime
 
-The **Reasoning Engine** (formerly known as LangChain on Vertex AI) lets you build custom Python agents locally and deploy them to a managed, serverless runtime on GCP.
+**Agent Engine** (formerly Reasoning Engine) is the serverless managed runtime that deploys any Python-based agent. It handles autoscaling, IAM, logging, and tracing automatically.
 
-### Deployment Workflow
-1.  **Define local Python Class:**
-    ```python
-    from google.cloud import aiplatform
+### Deployment Workflow (Custom Python Agent)
+```python
+import vertexai
+from vertexai.preview import reasoning_engines
 
-    class MyCustomAgent:
-        def __init__(self, model_name: str):
-            self.model_name = model_name
-            
-        def query(self, text: str) -> str:
-            # Custom LangChain/LlamaIndex or Python code here
-            return f"Processed query with {self.model_name}: {text}"
-    ```
-2.  **Initialize and Register:**
-    ```python
-    aiplatform.init(project="my-project", location="us-central1")
-    
-    # Deploy to Vertex AI
-    reasoning_engine = aiplatform.ReasoningEngine.create(
-        MyCustomAgent(model_name="gemini-1.5-pro"),
-        requirements=["google-cloud-aiplatform", "langchain"],
-        display_name="my-custom-python-agent"
-    )
-    ```
-3.  **Query the deployed endpoint:** The agent is exposed as a secure REST API endpoint managed by Vertex AI, handling autoscaling and IAM security automatically.
+vertexai.init(project="my-project", location="us-central1")
+
+class MyCustomAgent:
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+
+    def set_up(self):
+        # Called once on deployment — initialize clients, connections
+        pass
+
+    def query(self, text: str) -> str:
+        # Custom LangChain/LangGraph/ADK code here
+        return f"Processed query with {self.model_name}: {text}"
+
+remote_agent = reasoning_engines.ReasoningEngine.create(
+    MyCustomAgent(model_name="gemini-2.0-flash"),
+    requirements=["google-cloud-aiplatform[agent_engines]>=1.112", "langchain"],
+    display_name="my-custom-agent",
+)
+```
+
+### Agent Engine Capabilities (GA Status)
+| Feature | Status | Notes |
+| :--- | :--- | :--- |
+| Sessions | GA (Dec 2025) | Short-term state across multiple turns within a user session. |
+| Memory Bank | GA (Dec 2025) | Long-term persistent memory across sessions. $0.25/1,000 stored events (from Jan 2026). |
+| Code Execution | GA (Feb 2026) | Sandboxed code execution inside the agent runtime. |
+| Tracing / Unified Trace Viewer | GA | Debugging agent reasoning paths in Cloud Console. |
+
+> **SDK Deprecation Warning:** `vertexai.generative_models` was deprecated June 24, 2025 and will be **removed June 24, 2026**. Migrate LangchainAgent Tool imports to the `google-genai` SDK (`pip install google-genai`).
 
 ---
 
-## 5. Function Calling & Tool Use
+## 6. Function Calling & Tool Use
 
 **Function Calling** is the mechanism by which Gemini models interact with external systems. The model *does not* execute the function; it outputs a structured JSON object containing the arguments required to run the function.
 
 ```
-[User Request] 
+[User Request]
       |
       v
-[Gemini Model] + (Function Declarations) 
+[Gemini Model] + (Function Declarations)
       |
-      +---> Outputs: { name: "get_weather", args: { city: "Seattle" } } (Function Call)
+      +---> Outputs: { name: "get_weather", args: { city: "Seattle" } }  (Function Call)
       |
       v
 [Client App] (Executes actual API request locally or via server)
@@ -119,28 +200,63 @@ The **Reasoning Engine** (formerly known as LangChain on Vertex AI) lets you bui
 ```
 
 ### Exam Scenarios
-*   **Scenario:** You want Gemini to query real-time stock prices. Stock data is in a private internal API.
-    *   *Solution:* Define a `get_stock_price` function declaration, pass it to Gemini during the API call, parse the returned `functionCall` object in your client code, fetch the data from your API, and send it back to Gemini as a `functionResponse`.
+*   **Scenario:** You want Gemini to query real-time stock prices from a private internal API.
+    *   *Solution:* Define a `get_stock_price` function declaration, pass it during the API call, parse the returned `functionCall` object in client code, fetch from your API, send back as a `functionResponse`.
 
 ---
 
-## 6. Memory Patterns on GCP
+## 7. Memory Patterns on GCP
 
 AI agents require persistent memory to track conversation context across sessions.
 
 | Storage System | Memory Type | Why Choose It on GCP |
 | :--- | :--- | :--- |
-| **Cloud Firestore** | Session History / Short-term Chat Logs | Serverless NoSQL database. Low latency, auto-scaling, natively supported by LangChain's `FirestoreChatMessageHistory`. |
-| **Cloud SQL / Lakebase** | Relational / Long-term Profiles | Best when session states are tied to existing transactional customer databases. |
-| **Memorystore (Redis)** | Cache / In-memory Context | Ultra-low latency (sub-millisecond) for high-scale real-time conversational agents. |
+| **Agent Engine Sessions** | Short-term / Turn state | Managed by Agent Engine natively. GA. No external DB needed. |
+| **Agent Engine Memory Bank** | Long-term / Cross-session | Managed persistent memory. GA. Stores distilled facts, preferences. $0.25/1K events. |
+| **Cloud Firestore** | Session History / Chat Logs | Serverless NoSQL. Low latency, auto-scaling. Natively supported by LangChain's `FirestoreChatMessageHistory`. Use when you need full control of raw history. |
+| **Cloud SQL / Lakebase** | Relational / Long-term Profiles | Best when session states tie to existing transactional customer databases. |
+| **Memorystore (Redis)** | Cache / In-memory Context | Sub-millisecond latency for high-scale real-time conversational agents. |
 
 ---
 
-## 7. Exam Architectural Decision Matrix
+## 8. Multi-Agent Systems & A2A Protocol
 
-*   **Scenario:** You need to build a customer assistant chatbot that integrates with your internal REST APIs and GCS PDF brochures. Your development team consists of conversational designers with minimal Python engineering resources.
-    *   *Solution:* Use **Vertex AI Agent Builder (Playbooks)**. You can define the bot instructions in plain English, attach the GCS bucket as a Data Store, and configure the REST APIs as OpenAPI Tools.
-*   **Scenario:** You need to deploy a complex multi-agent system utilizing LangGraph that executes code in a sandbox, checks outputs, and loops recursively.
-    *   *Solution:* Deploy using **Vertex AI Reasoning Engine** with custom Python agent templates.
-*   **Scenario:** You want to secure your Agent API endpoint so that only specific service accounts can invoke it.
-    *   *Solution:* Bind the service account to the **Vertex AI User** IAM role on the deployed Reasoning Engine or Agent Builder endpoint.
+**A2A (Agent-to-Agent)** is an open protocol (under the Linux Foundation) for agent-to-agent coordination. Agent Engine supports deploying and using A2A-compatible agents.
+
+```
++------------------+      A2A Protocol      +------------------+
+| Supervisor Agent | <--------------------> | Specialist Agent |
+| (Orchestrator)   |   (task delegation,    | (e.g., SQL Agent)|
++------------------+    result passing)     +------------------+
+```
+
+### Key Patterns
+*   **Hierarchical:** Supervisor agent delegates sub-tasks to specialist agents.
+*   **Parallel:** Multiple agents run concurrently; results merged by orchestrator.
+*   **LangGraph on Agent Engine:** Deploy stateful multi-agent graphs using LangGraph; Agent Engine handles the runtime.
+
+### Exam Scenario
+*   **Scenario:** Deploy a complex multi-agent system using LangGraph that executes code in a sandbox, checks outputs, and loops recursively.
+    *   *Solution:* Deploy using **Vertex AI Agent Engine** with a custom Python class wrapping your LangGraph graph. Use Agent Engine Code Execution (GA) for sandboxed code.
+
+---
+
+## 9. IAM & Security
+
+*   Bind the invoking service account to the **Vertex AI User** (`roles/aiplatform.user`) IAM role on the Agent Engine resource.
+*   Agent Engine endpoints are private by default — require authenticated Google Cloud service account tokens.
+*   Tool governance: Agent Studio provides enhanced tool governance controls to restrict which tools agents can invoke.
+
+---
+
+## 10. Exam Architectural Decision Matrix
+
+| Scenario | Solution |
+| :--- | :--- |
+| Conversational designers, minimal Python, GCS PDFs + REST APIs. | **Agent Studio** (Playbooks + OpenAPI Tools + Data Stores) |
+| Complex multi-agent LangGraph system with recursive loops and code execution. | **ADK + Agent Engine** with Code Execution enabled. |
+| Deploy existing LangChain Python agent to managed serverless runtime. | **Agent Engine** (custom Python class or `AdkApp` wrapper). |
+| Agent must remember user preferences across sessions over weeks. | **Agent Engine Memory Bank** (GA). |
+| Ultra-low latency in-session context for high-throughput real-time chat. | **Memorystore (Redis)** for in-session cache. |
+| Secure Agent Engine endpoint to only specific service accounts. | Bind service account to **Vertex AI User** IAM role on the Agent Engine resource. |
+| Agent must coordinate with a specialist agent built by another team. | Use **A2A protocol** (open standard, supported natively on Agent Engine). |
