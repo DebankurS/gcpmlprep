@@ -1,14 +1,14 @@
 # AGENTS.md
 
 ## Setup commands
-- Install dependencies: `npm install`
-- Start local development server: `npm run dev`
+- Start development server: `npm run dev` (runs `docker compose up`)
+- Stop server: `npm run stop` (runs `docker compose down`)
 - Run automated test suite: `npm test`
 
 ## Project structure
 - `index.html` / `style.css` / `app.js` — single-page dashboard UI
 - `questions.js` — quiz question bank (GCP PMLE topics)
-- `server.js` — zero-dependency Node.js static file server
+- `docker-compose.yml` — serves static files via nginx:alpine on port 3000
 - `package.json` — project configuration & scripts
 - `test.js` — automated test suite
 - `docs/` — study guides (01–07 topics, markdown)
@@ -16,7 +16,7 @@
 
 ## Code style and conventions
 - **Technologies**: Vanilla HTML, Vanilla CSS, pure JavaScript — no frameworks.
-- **Node.js**: Zero-dependency server (`server.js`). Do not add npm dependencies.
+- **Server**: nginx:alpine via Docker Compose only (`docker-compose.yml`). No local Node.js server. Do not add npm dependencies.
 - **Formatting**: GitHub-style markdown for all docs and responses.
 - **Documentation**: Preserve all existing comments/docstrings unrelated to the change.
 - **Links**: Use `file://` scheme for file/symbol links (e.g., `[app.js](file:///path/to/app.js)`).
