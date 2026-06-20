@@ -78,14 +78,14 @@ Choose a schedule based on your timeline and prior GCP/ML experience:
 *   **Day 5-6:** Review [Domain 3 Guide](./public/docs/03_model_development.md) & understand Vizier and distributed strategies.
 *   **Day 7-8:** Review [Domain 4 Guide](./public/docs/04_mlops_and_pipelines.md) & understand KFP vs. TFX and traffic splitting.
 *   **Day 9-10:** Review [Domain 5 Guide](./public/docs/05_monitoring_and_responsible_ai.md) & understand drift vs. skew.
-*   **Day 11-12:** Review [Domain 6 Guide](./public/docs/06_generative_ai.md) & study RAG vs. Fine-tuning models.
+*   **Day 11-12:** Review [Domain 6 Guide](./public/docs/06_generative_ai.md) & [Domain 7 Guide](./public/docs/07_agents_and_reasoning_engines.md) to study RAG, Fine-tuning, and AI Agents.
 *   **Day 13-14:** Run full Mock Exams in the Quiz Center, review missed questions, and finalize cheat sheets.
 
 ### 📚 30-Day Comprehensive Plan (For standard preparation)
 *   **Week 1:** Problem Framing & Architecture (Domain 1). Complete related Qwiklabs on Vertex AI AutoML and BigQuery ML.
 *   **Week 2:** Data Ingestion & Engineering (Domain 2). Learn Apache Beam syntax and Feature Store setups.
 *   **Week 3:** Custom Model Training & Hyperparameter Tuning (Domain 3). Build custom containers and run Vertex custom jobs.
-*   **Week 4:** MLOps, Deployments, and Generative AI (Domain 4, 5, 6). Run mock quizzes daily, check Explainable AI parameters, and review safety guidelines for foundation models.
+*   **Week 4:** MLOps, Deployments, Generative AI, and Agents (Domain 4, 5, 6, 7). Run mock quizzes daily, check Explainable AI parameters, and review safety guidelines for foundation models and Agent Engine setups.
 
 ---
 

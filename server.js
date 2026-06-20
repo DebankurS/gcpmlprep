@@ -22,6 +22,16 @@ const MIME = {
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   if (url.pathname === '/api/progress') {
     res.setHeader('Content-Type', 'application/json');
     if (req.method === 'GET') {
@@ -34,6 +44,7 @@ http.createServer((req, res) => {
       let body = '';
       let size = 0;
       req.on('data', chunk => {
+        if (res.writableEnded) return;
         size += chunk.length;
         if (size > POST_BODY_MAX) {
           res.writeHead(413);

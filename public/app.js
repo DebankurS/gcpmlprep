@@ -77,11 +77,19 @@ const DOMAINS_CHECKLIST = [
       { id: "d6_1", text: "Access and prototype foundation models inside Vertex AI Model Garden and Vertex AI Studio." },
       { id: "d6_2", text: "Design Retrieval-Augmented Generation (RAG) pipelines using Vertex AI Vector Search (Matching Engine)." },
       { id: "d6_3", text: "Differentiate customization paths: choose Prompt Engineering vs. Grounding vs. Supervised Fine-Tuning (SFT) vs. RLHF." },
-      { id: "d6_4", text: "Implement Model Grounding with enterprise data sources (Vertex AI Search) and adjust content safety filters." },
-      { id: "d6_5", text: "Build code-first agents with the ADK (Agent Development Kit) and deploy them to Vertex AI Agent Engine serverless runtime." },
-      { id: "d6_6", text: "Design conversational agents with Agent Studio using playbooks, visual flows, and OpenAPI tools." },
-      { id: "d6_7", text: "Configure persistent memory using short-term Sessions and long-term Memory Bank, or Firestore/Redis." },
-      { id: "d6_8", text: "Implement multi-agent systems and agent-to-agent coordination using the A2A protocol." }
+      { id: "d6_4", text: "Implement Model Grounding with enterprise data sources (Vertex AI Search) and adjust content safety filters." }
+    ]
+  },
+  {
+    id: 7,
+    code: "AG",
+    title: "Domain 7: Agents & Reasoning Engines",
+    subtitle: "Orchestrating agents, memory systems, tools, and multi-agent coordination.",
+    items: [
+      { id: "d7_1", text: "Build code-first agents with the ADK (Agent Development Kit) and deploy them to Vertex AI Agent Engine serverless runtime." },
+      { id: "d7_2", text: "Design conversational agents with Agent Studio using playbooks, visual flows, and OpenAPI tools." },
+      { id: "d7_3", text: "Configure persistent memory using short-term Sessions and long-term Memory Bank, or Firestore/Redis." },
+      { id: "d7_4", text: "Implement multi-agent systems and agent-to-agent coordination using the A2A protocol." }
     ]
   }
 ];
@@ -425,7 +433,7 @@ let _progressData = { tracker: {}, scheduler: null };
 async function loadProgress() {
   try {
     const res = await fetch('/api/progress');
-    if (res.ok) _progressData = await res.json();
+    if (res.ok) { const d = await res.json(); if (d && typeof d === 'object') _progressData = d; }
   } catch (e) { /* server unavailable, use empty state */ }
 }
 
@@ -496,7 +504,7 @@ function setupRouting() {
   const tabDesc = document.getElementById("current-tab-desc");
 
   const tabMeta = {
-    tracker: { title: "Study Tracker", desc: "Track your progress across the six official exam domains." },
+    tracker: { title: "Study Tracker", desc: "Track your progress across the seven official exam domains." },
     notes: { title: "Study Guides", desc: "Read structured, high-fidelity summaries of key exam topics." },
     quiz: { title: "Mock Exam Quiz", desc: "Test your readiness with timed certification-style questions." },
     cheatsheet: { title: "Cheat Sheets", desc: "Quick reference tables, decision metrics, and comparisons." },
@@ -535,13 +543,17 @@ function initTrackerState() {
   if (_progressData.tracker && Object.keys(_progressData.tracker).length > 0) {
     trackerState = _progressData.tracker;
   } else {
-    DOMAINS_CHECKLIST.forEach(domain => {
-      domain.items.forEach(item => {
-        trackerState[item.id] = false;
-      });
-    });
-    saveTrackerState();
+    trackerState = {};
   }
+  // Ensure all items in DOMAINS_CHECKLIST are initialized in trackerState
+  DOMAINS_CHECKLIST.forEach(domain => {
+    domain.items.forEach(item => {
+      if (trackerState[item.id] === undefined) {
+        trackerState[item.id] = false;
+      }
+    });
+  });
+  saveTrackerState();
 }
 
 function saveTrackerState() {
@@ -702,35 +714,103 @@ function loadNotesDoc(filename) {
 // Simple regex-based Markdown parser to render files correctly in the dashboard
 function parseSimpleMarkdown(md) {
   let html = md;
-  // Headers
+  
+  // 1. Strip mermaid blocks before general code block extraction
+  html = html.replace(/```mermaid[\s\S]*?```/g, '');
+
+  // 1b. Placeholder Code Blocks
+  const codeBlocks = [];
+  html = html.replace(/```(?:[a-zA-Z0-9_\-]+)?\n([\s\S]*?)```/g, (match, codeContent) => {
+    const placeholder = `__CODE_BLOCK_PLACEHOLDER_${codeBlocks.length}__`;
+    codeBlocks.push(codeContent);
+    return placeholder;
+  });
+
+  // 2. Placeholder Inline Code
+  const inlineCodes = [];
+  html = html.replace(/`([^`]+)`/g, (match, codeContent) => {
+    const placeholder = `__INLINE_CODE_PLACEHOLDER_${inlineCodes.length}__`;
+    inlineCodes.push(codeContent);
+    return placeholder;
+  });
+
+  // 3. Headers
   html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
   html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
   html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
-  // Bold
+  html = html.replace(/^---$/gm, '<hr>');
+
+  // 4. Bold and Italic
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  // Lists (ordered and unordered)
+
+  // 5. Lists (ordered and unordered)
   html = html.replace(/^[*\-] (.*?)$/gm, '<li>$1</li>');
-  html = html.replace(/^\d+\.\s+(.*?)$/gm, '<li>$1</li>');
+  html = html.replace(/^\d+\.\s+(.*?)$/gm, '<oli>$1</oli>');
   html = html.replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, '<ul>$1</ul>');
-  // Tables (simplistic matching for our templates)
-  // Replace table syntax with basic HTML tags
+  html = html.replace(/((?:<oli>[^\n]*<\/oli>\n?)+)/g, (m) => '<ol>' + m.replace(/<\/?oli>/g, s => s.replace('oli', 'li')) + '</ol>');
+
+  // 6. Tables & Blockquotes (line-based parsing)
   const lines = html.split('\n');
   let inTable = false;
+  let isFirstRow = true;
   let tableHtml = '<table>';
+  let inBlockquote = false;
+  let blockquoteContent = '';
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
+    
+    // Blockquote handling
+    if (line.startsWith('>')) {
+      if (inTable) {
+        inTable = false;
+        tableHtml += '</table>';
+        lines[i] = tableHtml + '\n' + lines[i];
+      }
+      
+      if (!inBlockquote) {
+        inBlockquote = true;
+        blockquoteContent = '';
+      }
+      
+      let text = line.substring(1).trim();
+      if (text.startsWith('[!')) {
+        const closeBracketIdx = text.indexOf(']');
+        if (closeBracketIdx !== -1) {
+          const alertType = text.substring(2, closeBracketIdx);
+          const rest = text.substring(closeBracketIdx + 1).trim();
+          text = `<strong>${alertType}:</strong> ${rest}`;
+        }
+      }
+      blockquoteContent += (blockquoteContent ? '<br>' : '') + text;
+      lines[i] = '';
+      continue;
+    } else {
+      if (inBlockquote) {
+        inBlockquote = false;
+        lines[i] = `<blockquote>${blockquoteContent}</blockquote>\n` + lines[i];
+      }
+    }
+
+    // Table handling
     if (line.startsWith('|')) {
       if (!inTable) {
         inTable = true;
+        isFirstRow = true;
         tableHtml = '<table>';
       }
       const cols = line.split('|').slice(1, -1).map(c => c.trim());
       // Skip delimiter lines e.g. | :--- | :--- |
-      if (cols.every(c => c.startsWith(':') || c.startsWith('-'))) continue;
+      if (cols.every(c => c.startsWith(':') || c.startsWith('-'))) {
+        lines[i] = '';
+        continue;
+      }
       
-      tableHtml += '<tr>' + cols.map(c => `<td>${c}</td>`).join('') + '</tr>';
-      lines[i] = ''; // erase line
+      const tag = isFirstRow ? 'th' : 'td';
+      tableHtml += '<tr>' + cols.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+      isFirstRow = false;
+      lines[i] = '';
     } else {
       if (inTable) {
         inTable = false;
@@ -739,21 +819,29 @@ function parseSimpleMarkdown(md) {
       }
     }
   }
+  
+  if (inBlockquote) {
+    lines.push(`<blockquote>${blockquoteContent}</blockquote>`);
+  }
   if (inTable) {
     tableHtml += '</table>';
     lines.push(tableHtml);
   }
-  html = lines.join('\n');
-  // Blockquotes / Alerts
-  html = html.replace(/^> \[(.*?)\](.*?)$/gm, '<blockquote><strong>$1:</strong>$2</blockquote>');
-  html = html.replace(/^> (.*?)$/gm, '<blockquote>$1</blockquote>');
-  // Code Blocks
-  html = html.replace(/```(.*?)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-  // Inline Code
-  html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-  // Mermaids (ignore rendering, just hide raw block)
-  html = html.replace(/```mermaid([\s\S]*?)```/g, '<div class="hidden">$1</div>');
   
+  html = lines.join('\n');
+
+  const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // 7. Restore Inline Code
+  inlineCodes.forEach((codeContent, index) => {
+    html = html.replace(`__INLINE_CODE_PLACEHOLDER_${index}__`, () => `<code>${escHtml(codeContent)}</code>`);
+  });
+
+  // 8. Restore Code Blocks
+  codeBlocks.forEach((codeContent, index) => {
+    html = html.replace(`__CODE_BLOCK_PLACEHOLDER_${index}__`, () => `<pre><code>${escHtml(codeContent)}</code></pre>`);
+  });
+
   return html;
 }
 
@@ -1079,16 +1167,21 @@ let schedulerState = {
 function initStudyPlan() {
   if (_progressData.scheduler) {
     schedulerState = _progressData.scheduler;
-  } else {
-    [14, 28].forEach(duration => {
-      STUDY_PLANS[duration].forEach(dayData => {
-        dayData.tasks.forEach(task => {
+  }
+  
+  if (!schedulerState[14]) schedulerState[14] = {};
+  if (!schedulerState[28]) schedulerState[28] = {};
+  
+  [14, 28].forEach(duration => {
+    STUDY_PLANS[duration].forEach(dayData => {
+      dayData.tasks.forEach(task => {
+        if (schedulerState[duration][task.id] === undefined) {
           schedulerState[duration][task.id] = false;
-        });
+        }
       });
     });
-    saveSchedulerState();
-  }
+  });
+  saveSchedulerState();
 
   // Set duration buttons and render
   setStudyPlanDuration(schedulerState.activeDuration || 14);
