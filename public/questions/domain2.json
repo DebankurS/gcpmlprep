@@ -62,6 +62,45 @@
       "Cloud Dataflow with custom DoFn functions that perform validation and write results to Cloud Logging."
     ],
     "answer": 2,
-    "explanation": "Dataplex is Google Cloud's unified data management and governance service. It auto-discovers metadata across GCS and BigQuery (via Lakes/Zones/Assets), provides a searchable Data Catalog with lineage, and supports scheduled Data Quality Tasks (SQL-based rule checks) that publish results to Pub/Sub for alerting — all without writing custom code."
+    "explanation": "Dataplex is Google Cloud's unified data management and governance service. It auto-discovers metadata across GCS and BigQuery (via Lakes/Zones/Assets), provides a searchable Data Catalog with lineage, and supports scheduled Data Quality Tasks (SQL-based rule checks) that publish results to Pub/Sub for alerting \u2014 all without writing custom code."
+  },
+  {
+    "id": 42,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are using Vertex AI AutoML Tabular for fraud detection on a dataset with 0.3% positive (fraud) examples. What configurations help the model handle this extreme class imbalance?",
+    "options": [
+      "Increase the training budget; AutoML compensates for class imbalance automatically with more time.",
+      "Configure a positive class weight (upweight the minority class) in the AutoML training settings and set the optimization objective to **AUC-PR** (Area Under Precision-Recall Curve) instead of AUC-ROC. AUC-PR is more sensitive to minority class performance in highly imbalanced datasets.",
+      "Use stratified sampling to create a perfectly balanced 50/50 dataset by discarding most non-fraud rows.",
+      "Use anomaly detection instead \u2014 classification cannot handle ratios below 1%."
+    ],
+    "answer": 1,
+    "explanation": "At 0.3% positive rate, AUC-ROC can be misleadingly high because the model can score the large negative class well even if it misses all fraud. AUC-PR focuses on precision and recall for the minority class \u2014 more meaningful for imbalanced problems. Upweighting the positive class tells AutoML to penalize false negatives more heavily. In the AutoML API, set `optimization_objective='maximize-au-prc'` and `weight_column` or class weights in the training spec."
+  },
+  {
+    "id": 43,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are building a Vertex AI training pipeline with TFX. You need to ensure feature transformations (e.g., normalization, vocabulary lookup) are applied identically during training and serving without code duplication. Which TFX component enables this?",
+    "options": [
+      "Write feature engineering in a Python preprocessing_fn and wrap it in a separate Cloud Dataflow job.",
+      "Use the **TFX Transform component** (`tft.AnalyzeAndTransformDataset`): it materializes the feature engineering logic as a TensorFlow graph saved in a `transform_fn` artifact. This artifact is embedded in the exported SavedModel via `transform_fn_io` and executed during both training data generation and serving \u2014 guaranteeing identical transformations with no code duplication.",
+      "Use Feature Store to store pre-computed feature values and reference them in the TFX pipeline.",
+      "Use TFX StatisticsGen to compute and cache feature statistics for reuse at serving time."
+    ],
+    "answer": 1,
+    "explanation": "TFX Transform solves the training-serving skew problem for feature engineering. `preprocessing_fn` defines transformations in TensorFlow ops. `AnalyzeAndTransformDataset` runs two passes: Analyze (compute global statistics like vocabulary, mean, std) and Transform (apply them). The resulting `transform_fn` TensorFlow graph is exported alongside the model and executed at serving time inside the SavedModel \u2014 the same TF graph runs in both contexts, making skew impossible."
+  },
+  {
+    "id": 44,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Before training, you need to automatically detect data anomalies: unexpected new categorical values, null rates above 5%, or feature distribution shifts from historical baselines. Which GCP/TFX toolchain is purpose-built for this?",
+    "options": [
+      "Write a Cloud Run script that computes column statistics and compares them to hard-coded thresholds.",
+      "Use **TFX StatisticsGen + SchemaGen + ExampleValidator**: StatisticsGen computes statistics over new data; SchemaGen (run once on baseline) defines expected constraints (null rate bounds, allowed values, value ranges); ExampleValidator compares new statistics to the schema and outputs anomalies as a structured artifact. Runs natively in Vertex AI Pipelines.",
+      "Enable BigQuery column-level statistics alerts in Cloud Monitoring.",
+      "Use Dataprep to visually inspect data quality before each training run."
+    ],
+    "answer": 1,
+    "explanation": "The TFX data validation trio: (1) StatisticsGen computes feature statistics (mean, std, quantiles, top values, missing rate) using Apache Beam \u2014 scalable to large datasets; (2) SchemaGen infers or loads a schema (TFDV Schema proto) defining expected feature types, value sets, and bounds; (3) ExampleValidator compares new statistics to the schema and flags anomalies (new values, null spikes, distribution shift vs. baseline). This is the standard GCP MLOps data quality gate."
   }
 ]

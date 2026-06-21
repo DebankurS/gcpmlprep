@@ -76,5 +76,57 @@
     ],
     "answer": 1,
     "explanation": "Artifact Registry is the current standard for storing Docker images on Google Cloud, replacing the deprecated Container Registry. It supports regional storage, per-repository IAM, VPC Service Controls, and multiple artifact formats. The URI format is REGION-docker.pkg.dev/PROJECT/REPOSITORY/IMAGE:TAG."
+  },
+  {
+    "id": 48,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "When should you use Vertex AI Pipelines vs Cloud Composer (Apache Airflow) for ML workflow orchestration?",
+    "options": [
+      "Use Cloud Composer for all ML orchestration; Vertex AI Pipelines is only for model serving.",
+      "Use **Vertex AI Pipelines** for ML-centric workflows (data prep \u2192 training \u2192 evaluation \u2192 deployment): native artifact tracking, Vertex AI component integration, typed inputs/outputs. Use **Cloud Composer** for broader data engineering DAGs involving non-ML systems, complex scheduling, or when you need Airflow's rich operator ecosystem. They coexist: Composer can trigger a Vertex Pipeline as one of its tasks.",
+      "Vertex AI Pipelines requires Kubeflow SDK v1; Cloud Composer supports only Airflow DAGs.",
+      "Cloud Composer is serverless; Vertex AI Pipelines requires managing Kubernetes clusters."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Pipelines is ML-native: components are containers with typed ML artifacts (Dataset, Model, Metrics), lineage is auto-tracked in ML Metadata, and it integrates with Vertex AI services (AutoML, Custom Training, Model Registry, Endpoints). Cloud Composer is a general-purpose workflow orchestrator: stronger for multi-system coordination, external API calls, legacy integrations, and operators beyond ML. Using Composer to trigger Vertex Pipelines combines the strengths of both."
+  },
+  {
+    "id": 49,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "After training a new model version that outperforms the current one, you want to perform a zero-downtime rollout on Vertex AI. What steps achieve this?",
+    "options": [
+      "Delete the current Vertex AI Endpoint and create a new one with the new model.",
+      "Upload the new model to **Vertex AI Model Registry**, then update the Endpoint's **traffic split**: deploy the new model at 10% traffic alongside the existing model at 90% (`endpoint.deploy(model=new_model, traffic_percentage=10)`). Gradually increase to 100% and undeploy the old model version. Vertex AI handles traffic shifting with zero downtime.",
+      "Export the new model as TFLite and update the serving container's mounted volume.",
+      "Use Cloud Build to deploy \u2014 it automatically handles zero-downtime for Vertex AI endpoints."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Endpoints support multiple deployed model versions with configurable traffic percentages. Traffic splits are updated as a metadata operation \u2014 no endpoint restart or downtime. This enables canary deployment (10% \u2192 50% \u2192 100%) with per-version latency and error metrics visible in Cloud Monitoring. When you're confident, call `endpoint.undeploy(deployed_model_id)` to remove the old version."
+  },
+  {
+    "id": 50,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You want to automatically detect when production input feature distributions drift from the training baseline on a deployed Vertex AI Online Endpoint, with email alerts when thresholds are exceeded. Which service handles this?",
+    "options": [
+      "Write a Cloud Run service that samples 1% of requests and runs statistical tests against training data in BigQuery.",
+      "Enable **Vertex AI Model Monitoring** on the endpoint: specify the training dataset (BigQuery or GCS) as the baseline, configure skew/drift thresholds per feature, and set alert notification channels (email via Cloud Monitoring). Vertex AI samples production traffic, computes feature statistics, and alerts when thresholds are exceeded.",
+      "Use Cloud Logging to capture prediction inputs and run a Dataflow pipeline to compare distributions.",
+      "Enable Vertex AI Explainability \u2014 it also detects distribution shifts as a side effect."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Model Monitoring (now part of Vertex AI Model Registry / Endpoint monitoring) samples a configurable percentage of production prediction requests, aggregates feature statistics over time windows, and compares them to the training baseline using statistical tests. Alert thresholds are configurable per feature. Alerts fire to Cloud Monitoring notification channels (email, PagerDuty, Slack). It handles both training-serving skew (comparing to training data) and prediction drift (comparing recent windows to previous windows)."
+  },
+  {
+    "id": 51,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "A Vertex AI Pipeline run fails at the evaluation step. You need to trace exactly which dataset version was fed into training, which training container was used, and what metrics the model achieved before failure. Where is this recorded?",
+    "options": [
+      "Check Cloud Logging \u2014 all metadata is in the log entries.",
+      "**Vertex AI Metadata Store** (ML Metadata / MLMD): Vertex AI Pipelines automatically records all artifacts (datasets, models, metrics) and their lineage (which artifacts are inputs/outputs of which steps). View in the Cloud Console \u2192 Vertex AI \u2192 Pipelines \u2192 Run \u2192 Artifacts, or query via `aiplatform.Artifact.list()`. The lineage DAG shows exactly how data flowed through the pipeline.",
+      "Use Cloud Trace to inspect inter-component communication in the pipeline.",
+      "Download the failed pipeline's Argo Workflow YAML from GKE to reconstruct artifact lineage."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Metadata Store is backed by ML Metadata (MLMD), the same open-source library used by TFX. Every Vertex AI Pipeline step automatically records: input artifact URIs and types, output artifact URIs and types, execution parameters, and the execution-to-artifact edges that form the lineage graph. After a pipeline failure, you can inspect the partial lineage to see exactly what ran successfully before the failure, which artifacts were produced, and what metrics were logged."
   }
 ]

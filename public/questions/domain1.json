@@ -37,5 +37,44 @@
     ],
     "answer": 2,
     "explanation": "Document AI provides pre-trained processors specifically for documents like invoices (Invoice Parser). It extracts key-value pairs (like vendor name, total, date) out of the box with zero custom model training, making it the lowest-effort solution."
+  },
+  {
+    "id": 39,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A team is designing a product recommendation system. Users see recommendations when opening the app home screen (100ms SLA). New purchase events must be reflected within 15 minutes. Which serving architecture is most appropriate?",
+    "options": [
+      "Run a daily Vertex AI Batch Prediction job to score all users, store results in Bigtable, and serve via lookup.",
+      "Hybrid architecture: run batch prediction jobs every 15 minutes to pre-compute recommendations for all users and store results in Cloud Bigtable. The app reads from Bigtable at request time (< 5ms), achieving the 100ms SLA while reflecting purchases within 15 minutes.",
+      "Online prediction: deploy a Vertex AI Endpoint and call it directly at request time \u2014 Vertex AI guarantees 100ms latency.",
+      "Stream purchase events to Pub/Sub and call a Vertex AI endpoint in real-time for each event."
+    ],
+    "answer": 1,
+    "explanation": "The requirements are: 100ms response SLA (rules out calling a model in real-time for complex recommendation logic) AND 15-minute data freshness (rules out daily batch). Hybrid pre-compute: generate recommendations in batch on a 15-minute schedule, store in Cloud Bigtable (single-digit ms key-value reads), and serve from Bigtable at request time. This satisfies both constraints cleanly."
+  },
+  {
+    "id": 40,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A new mobile app has zero user history. A data scientist proposes a collaborative filtering model. A PM proposes showing bestsellers by region to new users. Which is more defensible at this stage, and why?",
+    "options": [
+      "The ML model is always preferable because it adapts to individual users.",
+      "Start with the heuristic (bestsellers by region): it ships fast, creates logging infrastructure to collect the interaction data ML needs, and establishes a baseline. Collaborative filtering requires sufficient user interaction history \u2014 new users have none (the cold-start problem). Build ML when data is available and the heuristic's ceiling is measurable.",
+      "Run both simultaneously from day one and let an A/B test determine the winner immediately.",
+      "Implement deep learning immediately to avoid technical debt later."
+    ],
+    "answer": 1,
+    "explanation": "This is the cold-start problem: collaborative filtering learns from user-item interactions, which don't exist for new users or a new product. A heuristic based on popularity (bestsellers by region) is a valid starting point that: (1) ships in days not months; (2) generates the interaction logs needed to eventually train an ML model; (3) provides an interpretable performance baseline. This is a YAGNI/lean-ML principle: don't over-engineer before data exists."
+  },
+  {
+    "id": 41,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You are classifying support tickets where each ticket may belong to MULTIPLE categories (e.g., 'billing' AND 'technical' AND 'urgent') simultaneously. Should you use multiclass or multi-label classification, and what changes in the model output layer?",
+    "options": [
+      "Use multiclass classification (softmax output) \u2014 softmax can handle multiple categories.",
+      "Use **multi-label classification**: predict an independent binary probability per category using sigmoid activation per output neuron (not softmax). Softmax forces mutual exclusivity (probabilities sum to 1), which is wrong when multiple labels coexist. In Keras: `Dense(num_classes, activation='sigmoid')` with `binary_crossentropy` loss; threshold each output independently.",
+      "Multi-label is only available in Vertex AI AutoML Vision, not for text tasks.",
+      "Use a ranking model that outputs categories in priority order and selects the top-k per ticket."
+    ],
+    "answer": 1,
+    "explanation": "Multiclass classification (softmax): exactly one class per sample \u2014 outputs are mutually exclusive probabilities summing to 1. Multi-label classification (sigmoid per output): each output is an independent binary prediction \u2014 any combination of labels is valid. For support tickets with co-occurring categories, sigmoid + binary_crossentropy is correct. Vertex AI AutoML Text supports multi-label classification natively."
   }
 ]

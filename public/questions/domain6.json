@@ -101,6 +101,45 @@
       "Add a Cloud Function post-processor that retries the Gemini call up to 5 times until valid JSON is returned."
     ],
     "answer": 2,
-    "explanation": "Controlled generation via response_schema (combined with response_mime_type='application/json') enforces schema compliance at the API level — Gemini is constrained to only output tokens that form a valid JSON object matching your schema. This guarantees 100% schema-valid output without fine-tuning or retry logic."
+    "explanation": "Controlled generation via response_schema (combined with response_mime_type='application/json') enforces schema compliance at the API level \u2014 Gemini is constrained to only output tokens that form a valid JSON object matching your schema. This guarantees 100% schema-valid output without fine-tuning or retry logic."
+  },
+  {
+    "id": 56,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are building a Gemini-powered news assistant that must answer questions about current events with real-time accuracy. Gemini has a training knowledge cutoff. What Vertex AI feature enables dynamic retrieval of current information without a custom RAG pipeline?",
+    "options": [
+      "Add today's date to the system prompt and instruct Gemini to avoid outdated facts.",
+      "Enable **Google Search Grounding**: configure `tools=[Tool(google_search_retrieval=GoogleSearchRetrieval())]` in the Gemini API call. Gemini automatically performs live Google Search during generation and cites retrieved sources. No pre-indexing or RAG pipeline is needed \u2014 search happens at inference time.",
+      "Fine-tune Gemini monthly on a corpus of recent news articles.",
+      "Use Vertex AI Vector Search with a daily-updated news embedding index for RAG-based retrieval."
+    ],
+    "answer": 1,
+    "explanation": "Google Search Grounding is a built-in Gemini capability on Vertex AI: when configured as a tool, Gemini decides when to invoke Google Search during generation and grounds its response in real-time web content with citations. This is distinct from RAG (which requires you to build and maintain a retrieval index) \u2014 Search Grounding delegates the retrieval to Google's search infrastructure, providing up-to-date information with zero pipeline maintenance."
+  },
+  {
+    "id": 57,
+    "domain": "Domain 6: Generative AI",
+    "question": "A manufacturing company wants a technician to photograph a component and ask 'Is there a visible crack in this metal bracket?' using Gemini. How do you enable this image+text input?",
+    "options": [
+      "Use Gemini Nano for on-device image processing on the technician's mobile device.",
+      "Use **Gemini's native multimodal capability**: send image and text together using `Part.from_bytes(image_bytes, mime_type='image/jpeg')` and `Part.from_text(question)` in a single `Content`. Gemini processes both jointly and generates a grounded response describing visible defects. No separate vision model is required.",
+      "Use the Cloud Vision API to detect defects, then pass the API output text to Gemini for explanation.",
+      "Train a Vertex AI AutoML Vision classifier specifically for crack detection and deploy separately."
+    ],
+    "answer": 1,
+    "explanation": "Gemini is natively multimodal: it processes text, images, video, audio, and PDFs within a single model. Sending image + text in the same content part is the standard pattern \u2014 no pre-processing with Vision API needed. For the `google-genai` SDK: `client.models.generate_content(model='gemini-2.5-flash', contents=[Part.from_bytes(...), Part.from_text(...)])`. This enables direct image question-answering without building a separate pipeline."
+  },
+  {
+    "id": 58,
+    "domain": "Domain 6: Generative AI",
+    "question": "You have 500 labeled prompt-response pairs for teaching Gemini Flash a specific enterprise tone. Full SFT is expensive. What is prompt tuning on Vertex AI, and how does it differ from SFT?",
+    "options": [
+      "Prompt tuning and SFT are the same \u2014 both update the full set of model weights.",
+      "**Prompt tuning** (soft prompt tuning) prepends a small set of trainable token embeddings to every input. Only these embeddings are optimized; base model weights are frozen. Requires far less compute than SFT. **SFT** updates actual model weights (or a large subset via LoRA) \u2014 better for structural output format changes. For tone adaptation with 500 examples, prompt tuning is often sufficient.",
+      "Prompt tuning automatically generates an optimal few-shot prompt using a genetic algorithm.",
+      "Prompt tuning is only available for Gemini Pro; Gemini Flash requires SFT for any fine-tuning."
+    ],
+    "answer": 1,
+    "explanation": "Soft prompt tuning (Lester et al., 2021): prepend P trainable continuous token embeddings (the 'soft prompt') to every input. Only these P\u00d7d parameters are updated by gradient descent \u2014 the LLM backbone is fully frozen. This makes training extremely parameter-efficient (often < 0.1% of model parameters). Trade-off: prompt tuning adapts style/tone well but cannot teach the model new structural behaviors (e.g., a rigid JSON schema) as effectively as SFT or LoRA, which actually modify the model weights."
   }
 ]

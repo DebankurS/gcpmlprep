@@ -63,5 +63,57 @@
     ],
     "answer": 2,
     "explanation": "Sensitive Data Protection (formerly Cloud DLP) provides managed inspection and de-identification of sensitive data in BigQuery, GCS, and other sources. It detects 150+ built-in infoTypes (SSNs, names, emails, credit cards) and applies de-identification transformations (masking, tokenization, bucketing) without writing custom code."
+  },
+  {
+    "id": 52,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You deployed a custom tabular model to Vertex AI. Legal requires per-prediction feature attributions (which features drove this specific decision?). How do you enable SHAP-based explanations on Vertex AI?",
+    "options": [
+      "Log SHAP values manually in the serving container and store them in BigQuery alongside predictions.",
+      "Enable **Vertex AI Explainability** when deploying: configure `ExplanationParameters` with `SampledShapleyAttribution` (or `IntegratedGradientsAttribution` for neural nets). Call `endpoint.explain()` instead of `endpoint.predict()` \u2014 the response includes feature attributions alongside predictions. Attribution values show each feature's contribution relative to the baseline.",
+      "Use the Vertex AI What-If Tool to generate SHAP values post-deployment.",
+      "Set `explain=True` in the training job config \u2014 Vertex AI generates explanations automatically at serving time."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Explainability is configured at model deployment time via `ExplanationMetadata` (feature names, input/output tensor names) and `ExplanationParameters` (SHAP via `SampledShapleyAttribution`, or Integrated Gradients for neural networks). The `explain()` API call returns a standard `Prediction` plus `Attribution` objects for each feature. For tabular models, Sampled Shapley provides consistent feature attributions; for image/text models, Integrated Gradients provides pixel/token-level attributions."
+  },
+  {
+    "id": 53,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You are building a loan approval model. A fairness constraint requires that the false negative rate (denying creditworthy applicants) must be within 5 percentage points across demographic groups. Which GCP tool helps you evaluate and visualize this?",
+    "options": [
+      "Use BigQuery ML `EXPLAIN_PREDICT` to compare attributions across demographic groups.",
+      "Use the **Vertex AI What-If Tool (WIT)** or **Fairness Indicators**: upload the evaluation dataset with demographic attributes, define fairness metrics (equal opportunity: equal TPR/FNR across groups, or demographic parity: equal positive rates), and WIT generates sliced performance metrics per group with visualization. Diagnose disparities and consider reweighting or fairness constraints.",
+      "Compute accuracy per demographic group in BigQuery and compare manually.",
+      "Apply differential privacy to training data, which automatically ensures fairness."
+    ],
+    "answer": 1,
+    "explanation": "The What-If Tool (WIT) and Fairness Indicators (part of TensorFlow Model Analysis / TFMA) both support sliced model evaluation: compute metrics (TPR, FPR, FNR, precision, recall) independently per demographic slice and visualize disparities. WIT also supports counterfactual analysis ('what is the minimum change to get a positive outcome?') which is valuable for explaining decisions. Both tools integrate with Vertex AI and are available as TFX pipeline components (ModelEvaluator with SlicingSpec)."
+  },
+  {
+    "id": 54,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "Your ML training data in BigQuery contains Social Security Numbers (SSNs) in a `tax_id` column not needed for the model. A data governance audit flags this as a PII risk. What is the recommended approach before using this data for training?",
+    "options": [
+      "Encrypt the SSN column with Cloud KMS before passing it to the training pipeline.",
+      "Use **Cloud DLP (Data Loss Prevention)** to automatically detect and de-identify `tax_id`: DLP can replace SSNs with tokens (format-preserving tokenization), hash them, or redact them. Alternatively, create a **BigQuery Authorized View** that excludes `tax_id` entirely and grant training jobs access only to that view. Removing unnecessary PII is the principle of data minimization.",
+      "Train the model including SSN but set feature importance to zero, preventing the model from using it.",
+      "Store SSNs in a separate private BigQuery table and train without joining it."
+    ],
+    "answer": 1,
+    "explanation": "Data minimization (GDPR Article 5, NIST privacy framework): don't retain or process PII that isn't needed. Cloud DLP provides automated PII detection and de-identification with multiple techniques: tokenization, masking, bucketing, date shifting. For BigQuery, the cleanest approach is a BigQuery Authorized View that projects only the non-PII columns \u2014 training jobs access the view and never see the raw PII, with no additional tooling required. DLP scanning can also be run proactively to find PII in datasets before they're used for training."
+  },
+  {
+    "id": 55,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "After training a production model, your team must document its intended uses, out-of-scope uses, performance across demographic groups, training data summary, and known limitations. What document standard should you produce and what GCP tool supports it?",
+    "options": [
+      "Write a README in the model's Cloud Storage bucket describing training parameters.",
+      "Produce a **Model Card**: a transparency document covering model details, intended/excluded use cases, performance metrics by slice (fairness evaluation), training data summary, ethical considerations, and limitations. Generate using the `model-card-toolkit` Python library and store alongside the model in Vertex AI Model Registry as documentation artifacts.",
+      "Publish a Vertex AI Experiment comparing model versions \u2014 this serves as the model card.",
+      "Submit the model training configuration to the GCP Trusted Cloud Initiative for documentation."
+    ],
+    "answer": 1,
+    "explanation": "Model Cards (Mitchell et al., 2019, Google AI) are the industry-standard format for ML model documentation and responsible AI transparency. The `model-card-toolkit` library (`pip install model-card-toolkit`) provides a Python API to programmatically populate and render Model Cards as HTML or JSON. They are particularly important for models used in high-stakes decisions (credit, healthcare, hiring) and are increasingly required by regulation (EU AI Act) and corporate governance policies."
   }
 ]

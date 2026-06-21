@@ -28,7 +28,7 @@ try {
     JSON.parse(fs.readFileSync(path.join(__dirname, f), 'utf8'))
   );
   assert.ok(Array.isArray(PRACTICE_QUESTIONS), "PRACTICE_QUESTIONS should be an array");
-  assert.strictEqual(PRACTICE_QUESTIONS.length, 38, `Should contain exactly 38 questions (found ${PRACTICE_QUESTIONS.length})`);
+  assert.strictEqual(PRACTICE_QUESTIONS.length, 60, `Should contain exactly 60 questions (found ${PRACTICE_QUESTIONS.length})`);
 
   const VALID_DOMAINS = new Set([
     "Domain 1: Framing & Architecture",

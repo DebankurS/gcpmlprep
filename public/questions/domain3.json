@@ -76,5 +76,44 @@
     ],
     "answer": 1,
     "explanation": "Vertex AI Experiments is designed for experiment tracking and comparison. Each training run logs hyperparameters and metrics to an Experiment. In Vertex AI Studio, all runs are visible in a comparison table. Programmatically, you can query the top-performing run by metric and use its output model artifact for registry promotion. Vizier is for automated hyperparameter search (Bayesian optimization), not manual experiment comparison."
+  },
+  {
+    "id": 45,
+    "domain": "Domain 3: Model Development",
+    "question": "You need to build an image classifier for detecting equipment defects. You have only 2,000 labeled images. Training from scratch will underfit. What approach should you use and what GCP options exist?",
+    "options": [
+      "Train from scratch with a large ResNet-152 to have maximum model capacity for the few training images.",
+      "Use **transfer learning**: start with ImageNet pre-trained weights and fine-tune on your 2,000 images. GCP options: (1) Vertex AI AutoML Vision (handles transfer learning automatically); (2) Model Garden pre-trained models (EfficientNet, ViT) via custom training jobs; (3) TF Hub `hub.KerasLayer` to load pre-trained weights in a custom script. Pre-trained low-level features (edges, textures) generalize well across visual domains.",
+      "Use Gemini Vision multimodal with 2,000 images in the prompt for few-shot classification.",
+      "Generate 100,000 synthetic images with a GAN before training any model from scratch."
+    ],
+    "answer": 1,
+    "explanation": "Transfer learning is the canonical solution for small labeled datasets: ImageNet-pre-trained CNNs have already learned general visual features (edges, shapes, textures) that transfer to new visual domains. Fine-tuning only the top layers (or the full network with a low learning rate) achieves high accuracy with minimal labeled data. 2,000 images is a reasonable fine-tuning dataset for defect detection. Vertex AI AutoML Vision does this automatically, while Model Garden gives you control over the backbone."
+  },
+  {
+    "id": 46,
+    "domain": "Domain 3: Model Development",
+    "question": "You are training a TensorFlow model on Vertex AI Custom Training with 4 GPU worker nodes. You want synchronous data-parallel training where each worker processes a shard of each batch and gradients are aggregated via AllReduce. Which TF distribution strategy is correct?",
+    "options": [
+      "Use `tf.distribute.MirroredStrategy` \u2014 it handles multi-GPU training across multiple machines.",
+      "Use `tf.distribute.MultiWorkerMirroredStrategy`: distributes training across multiple machines, each with one or more GPUs. Each worker processes a data shard, computes local gradients, and gradients are synchronized across all workers using AllReduce (CollectiveCommunication). `MirroredStrategy` is for single-machine multi-GPU only.",
+      "Use `tf.distribute.ParameterServerStrategy` for synchronous gradient updates with small models.",
+      "Use `tf.data.experimental.distribute_datasets_from_function` directly without a strategy wrapper."
+    ],
+    "answer": 1,
+    "explanation": "`MirroredStrategy`: single machine, multiple GPUs, uses NCCL for efficient GPU-to-GPU AllReduce. `MultiWorkerMirroredStrategy`: multiple machines, each with one or more GPUs, uses gRPC or NCCL for cross-machine AllReduce. For Vertex AI Custom Training with multiple worker nodes (separate VMs), `MultiWorkerMirroredStrategy` is required. It integrates automatically with the `TF_CONFIG` environment variable that Vertex AI injects into each worker."
+  },
+  {
+    "id": 47,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team runs dozens of Vertex AI training jobs with different hyperparameters. You want a centralized system that records parameters, metrics, and artifacts for each run, comparable to MLflow Tracking. Which Vertex AI service provides this?",
+    "options": [
+      "Store all metrics in BigQuery and visualize with Looker Studio.",
+      "**Vertex AI Experiments**: GCP's equivalent of MLflow tracking. Initialize with `aiplatform.init(experiment='my-exp')` and log with `aiplatform.log_params()`, `aiplatform.log_metrics()`. All runs appear in the Vertex AI Experiments dashboard for side-by-side comparison. Integrates natively with Vertex AI Pipelines and Custom Training.",
+      "Use Cloud Logging with structured JSON logs and query with Log Analytics.",
+      "Use Vertex AI Model Registry \u2014 it automatically tracks hyperparameters alongside model versions."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Experiments provides experiment tracking analogous to MLflow: runs, parameters, metrics, and artifact logging with a web dashboard for comparison. It integrates with Vertex AI Pipelines (each pipeline run is automatically an experiment run) and Custom Training jobs. For teams using non-Vertex training (e.g., local or GKE), the `google-cloud-aiplatform` SDK can be called from anywhere to log to Vertex AI Experiments."
   }
 ]

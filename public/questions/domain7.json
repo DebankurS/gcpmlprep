@@ -63,5 +63,31 @@
     ],
     "answer": 0,
     "explanation": "The Agent-to-Agent (A2A) protocol is an open protocol (under the Linux Foundation) designed for multi-agent coordination (such as supervisor-specialist patterns), and is natively supported on Vertex AI Agent Engine."
+  },
+  {
+    "id": 59,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "A customer support agent on Vertex AI needs to remember the user's name across multiple turns (within a conversation) AND remember product facts across all conversations. Which memory types address each need?",
+    "options": [
+      "Store all memory in the system prompt \u2014 it persists across all conversations automatically.",
+      "**Session memory** for within-conversation state (user name, current issue): managed as session context passed with each API call via the `Session` object. **Persistent/long-term memory** for cross-conversation facts (product knowledge, customer history): stored in a database (Firestore or BigQuery) or Vertex AI Vector Search, retrieved via explicit tool calls at the start of each session.",
+      "Use context caching for within-conversation state and model fine-tuning for cross-conversation knowledge.",
+      "Vertex AI Agent Engine manages all memory types automatically \u2014 no explicit design is required."
+    ],
+    "answer": 1,
+    "explanation": "Agent memory architecture: (1) Short-term/session memory: conversation history (turns) passed in the `contents` list of each API call, or managed by the Agent Engine `Session` object \u2014 automatically scoped to one conversation. (2) Long-term memory: persisted in external storage (Firestore for structured data, Bigtable for low-latency lookups, Vector Search for semantic retrieval) and accessed via agent tools. The agent decides when to call the retrieval tool, enabling personalization across sessions."
+  },
+  {
+    "id": 60,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are building a Vertex AI agent that calls `get_balance(account_id: str) -> float` and `transfer_funds(from_id, to_id, amount) -> bool`. How do you define these functions for the Gemini model to call them?",
+    "options": [
+      "Describe the functions in natural language in the system prompt and rely on Gemini to call them.",
+      "Define them as **FunctionDeclarations** with typed schemas and register as `Tool` objects: `Tool(function_declarations=[FunctionDeclaration(name='get_balance', parameters=Schema(...))])`. Gemini returns a `FunctionCall` response when it chooses to invoke a function; your app executes the actual function, returns a `FunctionResponse`, and Gemini generates the final reply.",
+      "Use Vertex AI Extensions to register the functions as API extensions with an OpenAPI spec.",
+      "Deploy functions as Cloud Run services and pass their URLs to Gemini as system prompt context."
+    ],
+    "answer": 1,
+    "explanation": "Gemini function calling (tool use): define each callable function as a `FunctionDeclaration` with its name, description, and typed parameter schema (using `Schema` objects). Register declarations in a `Tool` object and pass to `generate_content()`. When Gemini decides to call a function, it returns `content.parts[0].function_call` \u2014 your application executes the real function logic and passes the result back as a `FunctionResponse` in the next turn. Gemini uses the result to generate the final response."
   }
 ]
