@@ -1,6 +1,7 @@
 services:
   web:
     image: node:22-alpine
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:

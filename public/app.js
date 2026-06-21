@@ -163,6 +163,8 @@ async function saveProgress() {
 document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
   await loadQuestions();
+  const allOpt = document.querySelector('#quiz-mode option[value="all"]');
+  if (allOpt) allOpt.textContent = `Full Exam (${window.PRACTICE_QUESTIONS.length} Questions)`;
   await loadProgress();
   initTrackerState();
   renderChecklist();
@@ -809,6 +811,7 @@ function loadCodeSnippet(filename) {
     })
     .then(code => {
       codeEl.textContent = code;
+      if (window.Prism) Prism.highlightElement(codeEl);
     })
     .catch(() => {
       codeEl.textContent = '# Snippet unavailable — server may be offline.';

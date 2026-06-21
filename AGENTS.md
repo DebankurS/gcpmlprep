@@ -41,10 +41,10 @@ After any change to the repo, check if AGENTS.md is still accurate. Update it if
 ## Project context and guidelines
 GCP Professional Machine Learning Engineer (PMLE) certification study companion. Interactive dashboard with progress tracking, quiz engine, and GCP ML code templates.
 
-When adding or updating quiz questions in `questions.js`, verify answers against current GCP documentation — the PMLE exam tracks GCP product changes.
+When adding or updating quiz questions in `public/questions/domain{1-7}.json`, verify answers against current GCP documentation — the PMLE exam tracks GCP product changes.
 
 ## Quiz domain labels
-`questions.js` covers 7 domains. Use exact strings to avoid mislabeling:
+`public/questions/domain{1-7}.json` covers 7 domains. Use exact strings to avoid mislabeling:
 - `"Domain 1: Framing & Architecture"`
 - `"Domain 2: Data Preparation & Processing"`
 - `"Domain 3: Model Development"`
