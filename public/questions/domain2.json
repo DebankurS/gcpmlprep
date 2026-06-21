@@ -1,0 +1,67 @@
+[
+  {
+    "id": 4,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are building a custom TensorFlow model for predicting house prices. Your preprocessing includes scaling numerical variables and one-hot encoding categorical variables. During training, you apply these transforms in your Python script. However, in production, client requests sometimes send raw, unscaled values, causing incorrect predictions. This is an example of training-serving skew. How should you prevent this skew?",
+    "options": [
+      "Use Cloud Dataflow to preprocess the data in batch before training, and write an equivalent Cloud Function in Node.js to preprocess requests before they hit the endpoint.",
+      "Use TensorFlow Transform (tf.Transform) to define the preprocessing pipeline. Export the preprocessing graph and prepend it directly to the serving model, so the endpoint accepts raw data.",
+      "Increase the regularization parameters (L1/L2) in the TensorFlow model to make it more robust to scale differences.",
+      "Ask clients to implement the scaling equations directly in their client-side application before sending API requests."
+    ],
+    "answer": 1,
+    "explanation": "TensorFlow Transform (tf.Transform) solves training-serving skew by exporting the preprocessing steps as a TensorFlow computational graph. This graph is exported together with the model, meaning the model endpoint accepts raw inputs and performs the exact same preprocessing under the hood."
+  },
+  {
+    "id": 5,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You have a streaming pipeline that receives user action events from Cloud Pub/Sub. You need to calculate the click-through rate of ads displayed on a website for the last 10 minutes, updating the calculation every 1 minute. Which windowing strategy in Apache Beam (Cloud Dataflow) should you use?",
+    "options": [
+      "Fixed Windows of 10 minutes duration.",
+      "Sliding Windows of 10 minutes duration with a 1 minute slide period.",
+      "Session Windows with a gap duration of 1 minute.",
+      "Global Windows with custom triggers based on element count."
+    ],
+    "answer": 1,
+    "explanation": "Sliding windows are used when you want a window of size N that updates every M minutes. In this case, you want the last 10 minutes of data (window size) updated every 1 minute (slide period), which corresponds perfectly to a Sliding Window."
+  },
+  {
+    "id": 6,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your team is building multiple fraud detection models that all require the same features (e.g., 'number_of_failed_logins_last_24h'). Currently, different data scientists are calculating these features independently, leading to redundant work and inconsistencies in the data. You want to centralize these features. What GCP service should you use?",
+    "options": [
+      "BigQuery Materialized Views.",
+      "Vertex AI Feature Store.",
+      "Cloud Bigtable.",
+      "Cloud Storage bucket with parquet files."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Feature Store is specifically designed to solve this problem. It acts as a central repository to organize, store, and serve features. It enables feature sharing and reuse across different models/teams, and serves them both offline (high throughput for training) and online (low latency for predictions)."
+  },
+  {
+    "id": 20,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are training a model on a dataset where one of the features is a user's country. The country feature contains 190 unique values. During prediction serving, you notice that the model receives new country values (e.g. newly added regions) that were not present in the training set, causing the model to throw exceptions or predict incorrectly. Which MLOps component or practice should you implement to detect this issue automatically?",
+    "options": [
+      "Use Vertex AI Model Monitoring to detect training-serving skew on the country feature.",
+      "Use TFX StatisticsGen to compute prediction metrics.",
+      "Set up an Apache Beam pipeline with Fixed Windows.",
+      "Deploy a custom container to handle error logging manually."
+    ],
+    "answer": 0,
+    "explanation": "Training-serving skew includes differences in the values of features between training and serving datasets (e.g., a feature value that is present during serving but missing during training). Configuring Vertex AI Model Monitoring on this feature will trigger alerts when a significant skew is detected."
+  },
+  {
+    "id": 34,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your organization stores raw ML training data in Cloud Storage buckets and processed feature tables in BigQuery across multiple GCP projects. The data governance team wants a unified catalog with automatic metadata discovery and lineage tracking, plus automated daily data quality checks (null rate validation, value range checks) that alert on failures before pipeline runs. Which GCP service should you use?",
+    "options": [
+      "Vertex AI Feature Store, as it centralizes feature metadata.",
+      "Cloud Data Catalog, as it provides manual tagging of BigQuery tables.",
+      "Dataplex, as it provides unified lake governance, automatic metadata discovery across GCS and BigQuery, and native Data Quality Tasks that run on a schedule.",
+      "Cloud Dataflow with custom DoFn functions that perform validation and write results to Cloud Logging."
+    ],
+    "answer": 2,
+    "explanation": "Dataplex is Google Cloud's unified data management and governance service. It auto-discovers metadata across GCS and BigQuery (via Lakes/Zones/Assets), provides a searchable Data Catalog with lineage, and supports scheduled Data Quality Tasks (SQL-based rule checks) that publish results to Pub/Sub for alerting — all without writing custom code."
+  }
+]

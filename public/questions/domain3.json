@@ -1,0 +1,80 @@
+[
+  {
+    "id": 7,
+    "domain": "Domain 3: Model Development",
+    "question": "You are training a deep learning model in TensorFlow on Vertex AI Custom Training. The model size is over 200 GB, which is too large to fit into the memory of a single GPU or even a single VM. You need to distribute the model parameters across multiple servers. Which distribution strategy should you use in tf.distribute?",
+    "options": [
+      "tf.distribute.MirroredStrategy",
+      "tf.distribute.TPUStrategy",
+      "tf.distribute.ParameterServerStrategy",
+      "tf.distribute.MultiWorkerMirroredStrategy"
+    ],
+    "answer": 2,
+    "explanation": "ParameterServerStrategy is designed for multi-machine training where the model weights are too large to fit in a single worker's memory. The model parameters are stored on 'parameter servers' while the gradient computations are performed on 'workers', which fetch weights and send gradients back."
+  },
+  {
+    "id": 8,
+    "domain": "Domain 3: Model Development",
+    "question": "You need to tune the hyperparameters of a custom neural network on Vertex AI. You want to find the optimal combination of learning rate (continuous float), optimizer type (categorical string), and number of layers (discrete integer). You want to minimize the number of trial iterations because training is expensive. Which hyperparameter tuning service should you use?",
+    "options": [
+      "Vertex AI Vizier using Bayesian Optimization.",
+      "Run a Grid Search script inside a Cloud Dataproc cluster.",
+      "Run a Random Search script inside a Vertex AI Workbench notebook.",
+      "Use BigQuery ML's built-in grid search tuning options."
+    ],
+    "answer": 0,
+    "explanation": "Vertex AI Vizier is a managed hyperparameter tuning service. It uses Bayesian Optimization (a black-box optimization technique) to select hyperparameter values. It is highly sample-efficient, finding the optimal combinations in fewer trials compared to Grid Search or Random Search."
+  },
+  {
+    "id": 9,
+    "domain": "Domain 3: Model Development",
+    "question": "You have trained a custom regression model to predict housing prices. During evaluation, you observe that the model performs exceptionally well on the training dataset (very low RMSE) but performs poorly on the validation dataset (very high RMSE). What is the model experiencing, and how can you mitigate this issue?",
+    "options": [
+      "Underfitting (High Bias). You should increase the model complexity by adding more hidden layers.",
+      "Overfitting (High Variance). You should add L2 regularization or dropout, or collect more training data.",
+      "Data Leakage. You should combine the training and validation sets to retrain.",
+      "Gradient Explosion. You should implement gradient clipping in the optimizer."
+    ],
+    "answer": 1,
+    "explanation": "When a model has low training error but high validation error, it is overfitting (high variance). It has memorized the training data and fails to generalize. Correct remedies include regularization (L1/L2), dropout, early stopping, or increasing the volume of training data."
+  },
+  {
+    "id": 19,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team is building a deep learning model for image classification. You have a dataset of 5 million images. You have decided to use Vertex AI Custom Training with custom containers. To speed up training, you want to use multiple VM nodes, each containing 8 NVIDIA A100 GPUs. Which TensorFlow distribution strategy is best suited for this multi-node, multi-GPU setup?",
+    "options": [
+      "tf.distribute.MirroredStrategy",
+      "tf.distribute.MultiWorkerMirroredStrategy",
+      "tf.distribute.OneDeviceStrategy",
+      "tf.distribute.experimental.CentralStorageStrategy"
+    ],
+    "answer": 1,
+    "explanation": "MultiWorkerMirroredStrategy is the multi-worker/multi-node version of MirroredStrategy. It is designed to run training synchronously across multiple machines (workers), each containing one or more GPUs."
+  },
+  {
+    "id": 24,
+    "domain": "Domain 3: Model Development",
+    "question": "Your custom training script in Vertex AI needs to write custom training logs, checkpoints, and model files. What storage system should you use to write these outputs so they are durable, accessible to other pipeline stages, and do not fill up the VM's local disk?",
+    "options": [
+      "Write to local scratch directory `/tmp` on the VM and download them using ssh after training finishes.",
+      "Mount a Cloud Storage (GCS) bucket or write files directly to GCS paths using the tf.io.gfile API.",
+      "Write logs to Cloud Logging and weights to a BigQuery table.",
+      "Install a PostgreSQL database on the training VM to store weights as BLOB data."
+    ],
+    "answer": 1,
+    "explanation": "Cloud Storage (GCS) is the standard storage system for ML model training artifacts on Google Cloud. Writing checkpoints, tensorboard logs, and model saves to GCS (using tools like tf.io.gfile or direct GCS write paths) ensures durability and makes them available for downstream MLOps stages."
+  },
+  {
+    "id": 38,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team is running 20 Vertex AI Custom Training jobs with different hyperparameter combinations (learning rate, batch size, regularization strength) to find the optimal configuration for a tabular classification model. You need to compare all runs by val_AUC in a single view and programmatically identify the best run to promote to the Model Registry. Which Vertex AI service should you use?",
+    "options": [
+      "Vertex AI Vizier, as it performs black-box optimization and tracks trials automatically.",
+      "Vertex AI Experiments, as it provides a centralized tracking workspace to log parameters and metrics across runs and compare them in Vertex AI Studio.",
+      "Vertex AI Model Registry, as it stores evaluation metrics alongside each model version.",
+      "Cloud Logging, as all Vertex AI job metrics are automatically written there."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Experiments is designed for experiment tracking and comparison. Each training run logs hyperparameters and metrics to an Experiment. In Vertex AI Studio, all runs are visible in a comparison table. Programmatically, you can query the top-performing run by metric and use its output model artifact for registry promotion. Vizier is for automated hyperparameter search (Bayesian optimization), not manual experiment comparison."
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "id": 1,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You want to build a model to predict whether a customer will churn next month. The historical customer transaction and profile data is stored in BigQuery. Your team consists of SQL analysts who have minimal experience with Python and deep learning frameworks. You need to deploy a model as quickly as possible with minimum data movement. What should you do?",
+    "options": [
+      "Export the BigQuery tables to Cloud Storage, train a custom TensorFlow model using Vertex AI Custom Training, and deploy it to a Vertex AI Endpoint.",
+      "Use BigQuery ML to train a logistic regression model directly on the data in BigQuery, and use ML.PREDICT to perform batch inference.",
+      "Import the BigQuery data into Vertex AI AutoML Tabular to train a model, and deploy it to a Vertex AI Endpoint.",
+      "Extract the data using a Cloud Dataflow pipeline, train an XGBoost model in Cloud Dataproc, and save the model to a GCS bucket."
+    ],
+    "answer": 1,
+    "explanation": "BigQuery ML (BQML) is the best choice here because the data is already in BigQuery, the team consists of SQL analysts (so they can write standard SQL), and it avoids data egress (no data movement), satisfying all constraints of the scenario."
+  },
+  {
+    "id": 2,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You are designing an ML system to identify credit card transactions that are fraudulent. The transaction volume is extremely high, and only 0.05% of transactions are fraudulent. The customer service department has a strict constraint: they do not want to block legitimate transactions because it damages customer trust, but they want to flag as many actual fraudulent cases as possible. What evaluation metric should you prioritize during model training?",
+    "options": [
+      "Accuracy, because you want the model to be correct as often as possible across all transactions.",
+      "Recall, because you want to capture every single instance of fraud regardless of false alarms.",
+      "Precision, because you want to ensure that if a transaction is flagged as fraud, it is highly likely to be actual fraud, thus minimizing false alarms.",
+      "Mean Absolute Error (MAE), because you want to measure the average magnitude of prediction errors."
+    ],
+    "answer": 2,
+    "explanation": "The customer service department's constraint is that they do not want to block legitimate transactions (meaning they want to minimize False Positives). Precision is the ratio of True Positives to (True Positives + False Positives). Therefore, prioritizing Precision will minimize False Positives (legitimate transactions being flagged as fraud)."
+  },
+  {
+    "id": 3,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You need to build a system that reads scanned invoices in PDF format, extracts the vendor name, invoice date, and total amount, and stores them in a database. Your team has no machine learning engineers and needs a solution with the absolute minimum development effort. Which GCP service should you use?",
+    "options": [
+      "Train a custom CNN model on Vertex AI using custom containers to segment the text coordinates.",
+      "Use the Vertex AI Vision API to perform OCR, and then write custom regex scripts to extract the fields.",
+      "Use Document AI with a pre-trained Invoice Parser processor to extract structured invoice entities.",
+      "Load the PDFs into BigQuery Object Tables and write a custom SQL query using BigQuery ML's ML.GENERATE_TEXT function."
+    ],
+    "answer": 2,
+    "explanation": "Document AI provides pre-trained processors specifically for documents like invoices (Invoice Parser). It extracts key-value pairs (like vendor name, total, date) out of the box with zero custom model training, making it the lowest-effort solution."
+  }
+]

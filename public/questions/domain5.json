@@ -1,0 +1,67 @@
+[
+  {
+    "id": 13,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You have a regression model predicting retail store sales. After deployment, you configure Vertex AI Model Monitoring. You want to detect when the statistical distribution of the features sent to the online endpoint shifts away from the distribution of the features in the training dataset. What is this type of shift called, and what does the monitoring service require to detect it?",
+    "options": [
+      "Prediction Drift. The monitoring service requires a baseline of the first 7 days of production prediction data.",
+      "Training-Serving Skew. The monitoring service requires access to the original training dataset (stored in GCS or BigQuery) to act as a baseline.",
+      "Concept Drift. The monitoring service requires immediate ground-truth labels for all production predictions.",
+      "Covariate Shift. The monitoring service requires a secondary validation dataset."
+    ],
+    "answer": 1,
+    "explanation": "Training-serving skew is the difference between training data and serving (production) data. To detect training-serving skew, Vertex AI Model Monitoring compares production requests against the baseline training dataset, which must be accessible (e.g. in BigQuery or GCS)."
+  },
+  {
+    "id": 14,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You have built a deep neural network model for classifying chest X-ray images. The radiologists using the model need to understand *why* the model classified an image as having a specific pathology. They want a visual explanation showing which regions of the X-ray image the model relied on most for its decision. Which Explainable AI method should you use?",
+    "options": [
+      "Sampled Shapley, because it works for all black-box models.",
+      "Integrated Gradients, because it is computationally fast.",
+      "XRAI (eXplanation with Robust Alliances for Images), because it highlights image regions (salience maps) for differentiable models.",
+      "Shapley Additive exPlanations (SHAP) tabular explanations."
+    ],
+    "answer": 2,
+    "explanation": "XRAI is a Google Explainable AI method specifically designed for images. It builds on Integrated Gradients by grouping pixels into segments, creating heatmaps (salience maps) showing exactly which visual regions of the image contributed most to the model's classification."
+  },
+  {
+    "id": 15,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "A bank trains a machine learning model to evaluate loan applications. When auditing the model, the compliance team discovers that the model approves loans for applicants from Group A at a much higher rate than for applicants from Group B, even when they have similar credit scores. Which fairness metric is violated here, and what is a standard MLOps practice to document these limitations?",
+    "options": [
+      "Equal Opportunity is violated. The limitations should be documented in a Model Card.",
+      "Demographic Parity is violated. The limitations should be documented in a Model Card.",
+      "Accuracy is violated. The limitations should be documented in a README file.",
+      "Recall is violated. The limitations should be documented in a Vertex AI Pipeline log."
+    ],
+    "answer": 1,
+    "explanation": "Demographic Parity requires that the likelihood of a positive outcome (getting a loan approved) is equal across all groups, regardless of demographic features. When approval rates differ significantly, Demographic Parity is violated. Model Cards are the standard framework for documenting model performance, bias, limits, and ethics."
+  },
+  {
+    "id": 22,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You are deploying a custom tabular regression model to predict loan interest rates using Scikit-Learn. You need to configure Explainable AI. The features include credit score, debt-to-income ratio, and income. Which Explainable AI method should you configure in your model definition?",
+    "options": [
+      "Integrated Gradients, because it is the most mathematically rigorous for tabular models.",
+      "Sampled Shapley, because the model is built with Scikit-Learn (which is non-differentiable/tabular).",
+      "XRAI, because it supports complex float inputs.",
+      "Vertex AI Vizier, because it tunes feature attributions."
+    ],
+    "answer": 1,
+    "explanation": "Sampled Shapley is the recommended Explainable AI method for tabular, non-differentiable models such as those built with Scikit-learn (Random Forests, Gradient Boosting) or XGBoost. Integrated Gradients requires a differentiable model (like neural networks)."
+  },
+  {
+    "id": 37,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "Your company's raw customer transaction dataset in BigQuery contains Social Security Numbers, full names, and email addresses. Before using this data to train a fraud detection model on Vertex AI, the legal team requires all PII to be removed. You need a managed GCP service that can scan the BigQuery table for PII and replace sensitive values with masked tokens, with minimum custom code. What should you use?",
+    "options": [
+      "Write a Cloud Dataflow pipeline with custom Python DoFn functions that use regex to detect and replace PII fields.",
+      "Use BigQuery authorized views to hide PII columns from the training service account.",
+      "Use Sensitive Data Protection (formerly Cloud DLP) to run an inspect-and-de-identify job on the BigQuery table, replacing PII with masked or tokenized values.",
+      "Use Vertex AI Data Labeling to flag PII records and then delete them from the dataset."
+    ],
+    "answer": 2,
+    "explanation": "Sensitive Data Protection (formerly Cloud DLP) provides managed inspection and de-identification of sensitive data in BigQuery, GCS, and other sources. It detects 150+ built-in infoTypes (SSNs, names, emails, credit cards) and applies de-identification transformations (masking, tokenization, bucketing) without writing custom code."
+  }
+]

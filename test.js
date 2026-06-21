@@ -13,9 +13,20 @@ console.log("==================================================\n");
 // ---------------------------------------------------------
 // 1. TEST QUESTIONS DATABASE INTEGRITY
 // ---------------------------------------------------------
-console.log("1. Testing questions.js integrity...");
+console.log("1. Testing questions JSON files integrity...");
 try {
-  const { PRACTICE_QUESTIONS } = require('./public/questions.js');
+  const domainFiles = [
+    'public/questions/domain1.json',
+    'public/questions/domain2.json',
+    'public/questions/domain3.json',
+    'public/questions/domain4.json',
+    'public/questions/domain5.json',
+    'public/questions/domain6.json',
+    'public/questions/domain7.json'
+  ];
+  const PRACTICE_QUESTIONS = domainFiles.flatMap(f =>
+    JSON.parse(fs.readFileSync(path.join(__dirname, f), 'utf8'))
+  );
   assert.ok(Array.isArray(PRACTICE_QUESTIONS), "PRACTICE_QUESTIONS should be an array");
   assert.ok(PRACTICE_QUESTIONS.length >= 30, `Should contain at least 30 questions (found ${PRACTICE_QUESTIONS.length})`);
   
@@ -42,7 +53,13 @@ const requiredFiles = [
   'public/index.html',
   'public/style.css',
   'public/app.js',
-  'public/questions.js',
+  'public/questions/domain1.json',
+  'public/questions/domain2.json',
+  'public/questions/domain3.json',
+  'public/questions/domain4.json',
+  'public/questions/domain5.json',
+  'public/questions/domain6.json',
+  'public/questions/domain7.json',
   'AGENTS.md',
   'public/docs/01_framing_and_architecture.md',
   'public/docs/02_data_preparation.md',

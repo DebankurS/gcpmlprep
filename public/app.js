@@ -1,6 +1,33 @@
 // GCP Machine Learning Engineer Study Dashboard - Application Logic
 
 // =========================================================================
+// 0. QUESTIONS LOADER
+// =========================================================================
+
+/**
+ * Fetches all domain JSON files and merges them into window.PRACTICE_QUESTIONS.
+ * Files: public/questions/domain1.json … domain7.json
+ */
+async function loadQuestions() {
+  const files = [
+    'questions/domain1.json',
+    'questions/domain2.json',
+    'questions/domain3.json',
+    'questions/domain4.json',
+    'questions/domain5.json',
+    'questions/domain6.json',
+    'questions/domain7.json'
+  ];
+  const results = await Promise.all(
+    files.map(f => fetch(f).then(r => {
+      if (!r.ok) throw new Error(`Failed to load ${f}: ${r.status}`);
+      return r.json();
+    }))
+  );
+  window.PRACTICE_QUESTIONS = results.flat();
+}
+
+// =========================================================================
 // 1. DATA AND CONSTANTS
 // =========================================================================
 
@@ -94,327 +121,6 @@ const DOMAINS_CHECKLIST = [
   }
 ];
 
-// Offline fallbacks for notes content (to support direct double-clicks of index.html under CORS restrictions)
-const NOTES_OFFLINE_FALLBACK = {
-  "01_framing_and_architecture.md": `
-    <h1>Domain 1: Framing ML Problems & Architecting ML Solutions</h1>
-    <p>This study guide covers the foundational knowledge needed for Domain 1 of the GCP Machine Learning Engineer Exam: translating business challenges into ML problems, choosing metrics, and selecting the appropriate Google Cloud services.</p>
-    <h2>1. Framing ML Problems</h2>
-    <p>Before building a model, you must translate business goals into machine learning tasks.</p>
-    <ul>
-      <li><strong>Regression:</strong> Predicting continuous values (e.g., house prices, customer lifetime value).</li>
-      <li><strong>Binary Classification:</strong> True/False, Churn/No Churn, Fraud/Legitimate.</li>
-      <li><strong>Multi-class Classification:</strong> Single label from multiple categories (e.g., ticket categories).</li>
-      <li><strong>Unsupervised:</strong> Clustering (segmentation), Anomaly Detection (intrusion/outliers).</li>
-    </ul>
-    <h2>2. ML Evaluation Metrics</h2>
-    <p>The exam will present scenarios where you must select the appropriate metric based on the business cost of errors.</p>
-    <ul>
-      <li><strong>Precision:</strong> Minimize False Positives. Choose when false alarms are costly (e.g., Spam filters where you don't want legitimate emails blocked).</li>
-      <li><strong>Recall:</strong> Minimize False Negatives. Choose when missing a positive case is critical (e.g., Medical screening or financial fraud).</li>
-      <li><strong>F1-Score:</strong> Harmonic mean of Precision and Recall. Best for imbalanced datasets.</li>
-      <li><strong>RMSE:</strong> Penalizes larger errors heavily due to squaring.</li>
-    </ul>
-    <h2>3. Selecting the Right GCP Architecture</h2>
-    <ul>
-      <li><strong>Pre-trained APIs (Lowest effort):</strong> Vision, Speech, Translation, Natural Language, Document AI. Use when no custom data/labels are needed.</li>
-      <li><strong>BigQuery ML (Low-medium effort):</strong> Train models directly in BigQuery using standard SQL. <strong>Best when data is in BigQuery and you want to prevent data movement.</strong></li>
-      <li><strong>Vertex AI AutoML (Medium effort):</strong> Code-free model development for tabular, image, text, and video data.</li>
-      <li><strong>Vertex AI Custom Training (Highest effort/Flexibility):</strong> Write custom TensorFlow, PyTorch, or JAX models. Support for distributed training (GPUs/TPUs) and custom containers.</li>
-    </ul>
-  `,
-  "02_data_preparation.md": `
-    <h1>Domain 2: Data Preparation & Processing</h1>
-    <p>This study guide covers Domain 2 of the GCP Machine Learning Engineer Exam: data pipeline design, feature engineering, and managing data quality.</p>
-    <h2>1. Feature Engineering on Google Cloud</h2>
-    <ul>
-      <li><strong>BigQuery ML (TRANSFORM):</strong> Encapsulates preprocessing inside the model so the exact same SQL logic is applied during prediction (prevents training-serving skew).</li>
-      <li><strong>Cloud Dataflow:</strong> Serverless batch and stream processing service for Apache Beam. Best for terabyte/petabyte scale preprocessing.</li>
-      <li><strong>TensorFlow Transform (tf.Transform):</strong> Outputs preprocessing steps as a TensorFlow graph that is prepended directly to the model, completely preventing training-serving skew.</li>
-    </ul>
-    <h2>2. Cloud Dataflow & Apache Beam</h2>
-    <ul>
-      <li><strong>PCollection:</strong> Distributed dataset representation.</li>
-      <li><strong>PTransform:</strong> A data processing step (e.g. ParDo, Map).</li>
-      <li><strong>Fixed Windows:</strong> Static, non-overlapping time intervals (e.g., every 5 minutes).</li>
-      <li><strong>Sliding Windows:</strong> Overlapping intervals (e.g., last 10 minutes evaluated every 1 minute).</li>
-      <li><strong>Side Inputs:</strong> Auxiliary data read into memory during transforms for lookups.</li>
-    </ul>
-    <h2>3. Vertex AI Feature Store</h2>
-    <p>A central catalog to organize, store, and serve ML features. Prevents skew by serving identical feature values at training (offline store - BigQuery) and inference (online store - Bigtable/Redis). Supports <strong>Point-in-Time Joins (Time Travel)</strong> to prevent data leakage.</p>
-    <h2>4. Imbalanced Datasets</h2>
-    <p>Remedies include: Downsampling (sub-sampling majority), Upsampling (SMOTE), or Class Weights (penalize minority errors). <strong>Never use accuracy</strong>; use Precision, Recall, or F1-Score.</p>
-  `,
-  "03_model_development.md": `
-    <h1>Domain 3: Model Development</h1>
-    <p>This study guide covers Domain 3 of the GCP Machine Learning Engineer Exam: building, training, tuning, and evaluating custom ML models on Google Cloud.</p>
-    <h2>1. Vertex AI Custom Training</h2>
-    <ul>
-      <li><strong>Pre-built Containers:</strong> Google-maintained Docker containers with standard frameworks (TensorFlow, PyTorch, Scikit-learn). Use these by default to reduce operational overhead.</li>
-      <li><strong>Custom Containers:</strong> Required only for non-standard system dependencies or custom private libraries.</li>
-    </ul>
-    <h2>2. Distributed Training Strategies</h2>
-    <ul>
-      <li><strong>MirroredStrategy:</strong> Single VM, multi-GPU. Replicates weights across all local GPUs.</li>
-      <li><strong>MultiWorkerMirroredStrategy:</strong> Replicates weights across multiple VMs, multi-GPU.</li>
-      <li><strong>ParameterServerStrategy:</strong> Separate Parameter Servers (store weights) and Workers (compute gradients). Best for extremely large models.</li>
-      <li><strong>TPUStrategy:</strong> Specifically designed to run model training on Google TPU pods.</li>
-    </ul>
-    <h2>3. Hyperparameter Tuning with Vertex AI Vizier</h2>
-    <p>A black-box optimization service utilizing <strong>Bayesian Optimization</strong> (probability models select next parameters). Extremely sample-efficient compared to Grid Search. Supports automatic early stopping for poorly performing trials.</p>
-    <h2>4. Overfitting vs. Underfitting</h2>
-    <ul>
-      <li><strong>Overfitting (High Variance):</strong> Low training error, high validation error. Remedy: Add L1/L2 regularization, dropout, early stopping, reduce complexity, or collect more data.</li>
-      <li><strong>Underfitting (High Bias):</strong> High training error, high validation error. Remedy: Increase complexity (layers/parameters), add features, reduce regularization, or train longer.</li>
-    </ul>
-  `,
-  "04_mlops_and_pipelines.md": `
-    <h1>Domain 4: MLOps & Pipelines</h1>
-    <p>This study guide covers Domain 4 of the GCP Machine Learning Engineer Exam: MLOps practices, workflow orchestration, model hosting, and automation on Google Cloud.</p>
-    <h2>1. Kubeflow Pipelines (KFP) vs. TFX</h2>
-    <ul>
-      <li><strong>KFP:</strong> Highly flexible, framework-agnostic (PyTorch, Scikit-learn). Custom steps defined by Python functions or containers.</li>
-      <li><strong>TFX:</strong> Highly opinionated, production-grade, TF-specific. Standardized components: ExampleGen (ingest), ExampleValidator (schema check), Transform (tf.Transform), Evaluator (TFMA evaluation), Pusher (deploy).</li>
-    </ul>
-    <h2>2. Vertex AI Model Registry</h2>
-    <p>Central repository to manage model versions and assign aliases (e.g. @champion, @challenger) to route traffic dynamically without changing client API calls.</p>
-    <h2>3. Vertex AI Endpoints</h2>
-    <ul>
-      <li><strong>Traffic Splitting (Canary Deployments):</strong> Route e.g. 95% of traffic to stable v1 and 5% to v2 on the same endpoint to verify performance.</li>
-      <li><strong>Autoscaling:</strong> Node scaling (min/max) based on CPU usage target.</li>
-      <li><strong>Private Endpoints:</strong> Uses VPC Network Peering to prevent traffic traveling over the public internet, reducing latency.</li>
-    </ul>
-    <h2>4. Continuous Training (CT) Automation</h2>
-    <ul>
-      <li><strong>Event-based:</strong> New file uploaded to GCS -> Eventarc -> Cloud Function -> Run Vertex Pipeline.</li>
-      <li><strong>Schedule-based:</strong> Cloud Scheduler -> Pub/Sub -> Cloud Function -> Run Vertex Pipeline.</li>
-      <li><strong>Performance-based:</strong> Model Monitor detects drift/skew -> Pub/Sub -> Run Vertex Pipeline.</li>
-    </ul>
-  `,
-  "05_monitoring_and_responsible_ai.md": `
-    <h1>Domain 5: Monitoring, Optimization & Responsible AI</h1>
-    <p>This study guide covers Domain 5 of the GCP Machine Learning Engineer Exam: model monitoring, Explainable AI, and Responsible AI principles.</p>
-    <h2>1. Vertex AI Model Monitoring</h2>
-    <ul>
-      <li><strong>Training-Serving Skew:</strong> Difference between training dataset (stored baseline) and production requests. Fix: Audit preprocessing pipelines.</li>
-      <li><strong>Prediction Drift:</strong> Changes in production data over time (compared against historical prediction logs). Fix: Retrain model on newer data.</li>
-      <li><strong>Metrics:</strong> L1 statistical distance (categorical) and Jensen-Shannon divergence / Population Stability Index (numerical).</li>
-    </ul>
-    <h2>2. Vertex AI Explainable AI (XAI)</h2>
-    <ul>
-      <li><strong>Integrated Gradients:</strong> Best for differentiable neural networks (Computes gradients along a path from baseline).</li>
-      <li><strong>Sampled Shapley:</strong> Best for tabular, non-differentiable models (XGBoost, Scikit-learn).</li>
-      <li><strong>XRAI:</strong> Best for computer vision (generates pixel heatmaps showing region attributions).</li>
-    </ul>
-    <h2>3. Responsible AI & Ethics</h2>
-    <ul>
-      <li><strong>Fairness:</strong> Demographic Parity (equal approval likelihood across groups) vs. Equal Opportunity (equal recall/TPR across groups).</li>
-      <li><strong>Model Cards:</strong> Core documentation containing intent, metrics, limits, and ethical considerations.</li>
-      <li><strong>Privacy:</strong> Cloud DLP (de-identify PII), differential privacy (injecting mathematical noise).</li>
-    </ul>
-  `,
-  "06_generative_ai.md": `
-    <h1>Domain 6: Generative AI on Google Cloud</h1>
-    <p>This study guide covers the newly updated Generative AI domain: foundations of LLMs, engineering options (RAG vs. Tuning), and Google Cloud GenAI tools.</p>
-    <h2>1. GCP Generative AI Ecosystem</h2>
-    <ul>
-      <li><strong>Model Garden:</strong> Curated repository of foundation models (Gemini, Imagen, Chirp), open-source (Gemma, Llama), and partner models.</li>
-      <li><strong>Vertex AI Studio:</strong> Interactive playground for text, chat, and multimodal prompt design and initiating tuning jobs.</li>
-      <li><strong>Vertex AI Agent Builder:</strong> Orchestrates search and conversation engines grounded in enterprise data (GCS, BigQuery).</li>
-    </ul>
-    <h2>2. Engineering Choices (Prompt vs. RAG vs. Tuning)</h2>
-    <ul>
-      <li><strong>Prompt Engineering:</strong> Lowest cost, fast. Designing instructions and few-shot examples.</li>
-      <li><strong>Retrieval-Augmented Generation (RAG):</strong> Medium cost. Grounding Gemini with documents indexed in a vector database (Vertex AI Vector Search). <strong>Best for dynamic, real-time private database queries to prevent hallucinations.</strong></li>
-      <li><strong>Supervised Fine-Tuning (SFT):</strong> High cost. Adjusting weights on prompt-response pairs to teach specific formats (e.g. rigid JSON outputs) or custom tones.</li>
-    </ul>
-    <h2>3. Grounding and Safety Filters</h2>
-    <ul>
-      <li><strong>Grounding:</strong> Forcing LLMs to cite and stay within the boundaries of GCS, BigQuery, or Web Search results.</li>
-      <li><strong>Safety Filters:</strong> Configurable block levels (e.g., BLOCK_MEDIUM_AND_ABOVE) for Harmful, Hate, Harassment, and Sexually Explicit content.</li>
-    </ul>
-  `,
-  "07_agents_and_reasoning_engines.md": `
-    <h1>GCP AI Agents & Reasoning Engines Study Guide</h1>
-    <p>This guide covers the architectural design, implementation, and deployment of <strong>AI Agents and Reasoning Engines</strong> on Google Cloud Platform (GCP)—a critical topic in the updated GCP Professional Machine Learning Engineer exam.</p>
-    <h2>1. Conceptual Framework: What is an Agent?</h2>
-    <ul>
-      <li><strong>Brain:</strong> The LLM (e.g., Gemini 2.0 Flash, Gemini 2.5 Pro) that performs reasoning.</li>
-      <li><strong>Memory:</strong> Short-term (conversation history) and Long-term (distilled facts/profiles via Agent Engine Memory Bank).</li>
-      <li><strong>Planning:</strong> Breaking down complex tasks into sub-goals (e.g., ReAct loop: Reasoning → Action → Observation).</li>
-      <li><strong>Tools:</strong> External resources like SQL execution, APIs, or Cloud Functions.</li>
-    </ul>
-    <h2>2. Vertex AI Agent Builder: Platform Overview</h2>
-    <ul>
-      <li><strong>ADK (Agent Development Kit):</strong> Open-source, model-agnostic SDK (Python, Go, Java, TypeScript) for custom agent logic and multi-agent systems.</li>
-      <li><strong>Agent Studio:</strong> Low-code visual canvas (Playbooks + Agent Designer) for conversational designers. Supports OpenAPI Tools and Data Store grounding.</li>
-      <li><strong>Agent Engine (formerly Reasoning Engine):</strong> Serverless managed runtime handling autoscaling, IAM, Sessions, Memory Bank, Code Execution, and Tracing.</li>
-    </ul>
-    <h2>3. Agent Engine Capabilities (GA Status)</h2>
-    <ul>
-      <li><strong>Sessions (GA):</strong> Managed turn-by-turn state within a single conversation session. No external DB needed.</li>
-      <li><strong>Memory Bank (GA):</strong> Persistent cross-session long-term memory. $0.25/1,000 stored events.</li>
-      <li><strong>Code Execution (GA):</strong> Sandboxed execution of generated code inside the runtime.</li>
-      <li><strong>Tracing:</strong> Unified Trace Viewer in Cloud Console for debugging agent reasoning paths.</li>
-    </ul>
-    <h2>4. Multi-Agent Systems & A2A Protocol</h2>
-    <ul>
-      <li><strong>A2A Protocol:</strong> Open standard (Linux Foundation) for Agent-to-Agent communication and supervisor-specialist coordination.</li>
-      <li><strong>Hierarchical:</strong> Supervisor agent delegates sub-tasks to specialist agents.</li>
-      <li><strong>Parallel:</strong> Multiple agents run concurrently; orchestrator merges results.</li>
-      <li><strong>LangGraph on Agent Engine:</strong> Deploy stateful multi-agent graphs; Agent Engine handles the runtime.</li>
-    </ul>
-    <h2>5. Function Calling & Tool Use</h2>
-    <p>Gemini outputs a structured JSON object (function name + args) — it does NOT execute the function. The client app executes the function, then sends back a <code>functionResponse</code> for the model to generate the final answer.</p>
-    <h2>6. IAM & Security</h2>
-    <ul>
-      <li>Bind invoking service account to <strong>Vertex AI User</strong> (<code>roles/aiplatform.user</code>) on the Agent Engine resource.</li>
-      <li>Agent Engine endpoints are private by default — require authenticated GCP service account tokens.</li>
-    </ul>
-    <h2>7. Exam Decision Matrix</h2>
-    <ul>
-      <li><strong>Conversational designer, GCS PDFs, REST APIs:</strong> Agent Studio (Playbooks + Data Stores + OpenAPI Tools).</li>
-      <li><strong>Custom multi-agent LangGraph with code execution:</strong> ADK + Agent Engine with Code Execution.</li>
-      <li><strong>Cross-session user preferences:</strong> Agent Engine Memory Bank (GA).</li>
-      <li><strong>High-throughput real-time chat context:</strong> Memorystore (Redis).</li>
-      <li><strong>Agent-to-agent coordination across teams:</strong> A2A Protocol.</li>
-    </ul>
-  `
-};
-
-const SNIPPET_OFFLINE_FALLBACK = {
-  "bqml_model.sql": `-- BigQuery ML (BQML) Reference Template
--- This SQL script demonstrates the lifecycle of training, evaluating, and predicting
--- with a classification model in BigQuery using SQL-based preprocessing.
-
--- 1. CREATE AND TRAIN THE MODEL WITH PREPROCESSING
-CREATE OR REPLACE MODEL \`your_project.your_dataset.churn_classifier\`
-TRANSFORM(
-  churned,
-  ML.STANDARD_SCALER(customer_age) OVER() AS age_scaled,
-  ML.STANDARD_SCALER(total_spend) OVER() AS spend_scaled,
-  LOWER(country) AS country_clean,
-  ML.QUANTILE_BUCKETIZER(tenure_months, 4) OVER() AS tenure_bucket
-)
-OPTIONS(
-  MODEL_TYPE = 'LOGISTIC_REG',
-  INPUT_LABEL_COLS = ['churned'],
-  L2_REG = 0.1,
-  DATA_SPLIT_METHOD = 'AUTO_SPLIT'
-) AS
-SELECT churned, customer_age, total_spend, country, tenure_months
-FROM \`your_project.your_dataset.customer_transactions\`
-WHERE churned IS NOT NULL;
-
--- 2. EVALUATE MODEL PERFORMANCE
-SELECT * FROM ML.EVALUATE(
-  MODEL \`your_project.your_dataset.churn_classifier\`,
-  (SELECT churned, customer_age, total_spend, country, tenure_months 
-   FROM \`your_project.your_dataset.customer_transactions_test\`)
-);
-
--- 3. RUN BATCH PREDICTION
-SELECT customer_id, predicted_churned, predicted_churned_probs[OFFSET(1)].prob AS probability_churned
-FROM ML.PREDICT(
-  MODEL \`your_project.your_dataset.churn_classifier\`,
-  (SELECT customer_id, customer_age, total_spend, country, tenure_months 
-   FROM \`your_project.your_dataset.customer_transactions_new\`)
-);
-
--- 4. EXPLAIN PREDICTIONS (EXPLAINABLE AI)
-SELECT customer_id, predicted_churned, top_feature_attributions
-FROM ML.EXPLAIN_PREDICT(
-  MODEL \`your_project.your_dataset.churn_classifier\`,
-  (SELECT customer_id, customer_age, total_spend, country, tenure_months 
-   FROM \`your_project.your_dataset.customer_transactions_new\`),
-  STRUCT(3 AS top_k_features)
-);`,
-
-  "vertex_pipeline.py": `# Vertex AI Pipelines (KFP SDK v2) Reference Template
-import os
-from kfp import dsl
-from kfp import compiler
-from google.cloud import aiplatform
-
-@dsl.component(base_image="python:3.10", packages_to_install=["pandas", "scikit-learn"])
-def preprocess_data(input_gcs_path: str, preprocessed_dataset: dsl.Output[dsl.Dataset]):
-    import pandas as pd
-    # Clean data and save to output path
-    raw_df = pd.DataFrame({"feature1": [1.0, 2.0], "label": [0, 1]})
-    os.makedirs(preprocessed_dataset.path, exist_ok=True)
-    raw_df.to_csv(os.path.join(preprocessed_dataset.path, "data.csv"), index=False)
-
-@dsl.component(base_image="python:3.10", packages_to_install=["pandas", "scikit-learn", "joblib"])
-def train_model(dataset: dsl.Input[dsl.Dataset], learning_rate: float, model_artifact: dsl.Output[dsl.Model]):
-    import os, joblib, pandas as pd
-    from sklearn.ensemble import RandomForestClassifier
-    df = pd.read_csv(os.path.join(dataset.path, "data.csv"))
-    model = RandomForestClassifier()
-    model.fit(df[["feature1"]], df["label"])
-    os.makedirs(model_artifact.path, exist_ok=True)
-    joblib.dump(model, os.path.join(model_artifact.path, "model.joblib"))
-
-@dsl.component(base_image="python:3.10", packages_to_install=["pandas", "scikit-learn", "joblib"])
-def evaluate_model(dataset: dsl.Input[dsl.Dataset], model_artifact: dsl.Input[dsl.Model]) -> str:
-    import os, joblib, pandas as pd
-    from sklearn.metrics import accuracy_score
-    df = pd.read_csv(os.path.join(dataset.path, "data.csv"))
-    model = joblib.load(os.path.join(model_artifact.path, "model.joblib"))
-    preds = model.predict(df[["feature1"]])
-    accuracy = accuracy_score(df["label"], preds)
-    return "deploy" if accuracy >= 0.8 else "reject"
-
-@dsl.pipeline(name="vertex-ai-demo-pipeline", description="ML training pipeline")
-def ml_pipeline(input_gcs_path: str = "gs://your-bucket-name/raw_data.csv"):
-    preprocess_task = preprocess_data(input_gcs_path=input_gcs_path)
-    train_task = train_model(dataset=preprocess_task.outputs["preprocessed_dataset"], learning_rate=0.01)
-    eval_task = evaluate_model(dataset=preprocess_task.outputs["preprocessed_dataset"], model_artifact=train_task.outputs["model_artifact"])
-
-if __name__ == "__main__":
-    compiler.Compiler().compile(pipeline_func=ml_pipeline, package_path="vertex_ml_pipeline.json")
-    print("Pipeline compiled successfully to vertex_ml_pipeline.json")`,
-
-  "dataflow_pipeline.py": `# Cloud Dataflow (Apache Beam) Preprocessing Reference Template
-import apache_beam as beam
-from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.options.pipeline_options import SetupOptions
-
-class CleanAndParseRow(beam.DoFn):
-    def process(self, element, delimiter=','):
-        if element.startswith("customer_id") or not element.strip():
-            return
-        try:
-            parts = element.split(delimiter)
-            customer_id = parts[0].strip()
-            age = int(parts[1].strip())
-            spend = float(parts[2].strip())
-            country = parts[3].strip()
-            
-            if age > 0 and spend >= 0:
-                yield {
-                    "customer_id": customer_id,
-                    "age": age,
-                    "spend": spend,
-                    "country": country.upper(),
-                    "is_high_spender": 1 if spend > 500.0 else 0
-                }
-        except (ValueError, IndexError):
-            return
-
-def run_pipeline(argv=None):
-    options = PipelineOptions(argv)
-    options.view_as(SetupOptions).save_main_session = True
-    
-    with beam.Pipeline(options=options) as p:
-        (p 
-         | "ReadFromSource" >> beam.io.ReadFromText("input_data.csv")
-         | "CleanAndFormat" >> beam.ParDo(CleanAndParseRow())
-         | "FormatCSVString" >> beam.Map(lambda r: f"{r['customer_id']},{r['age']},{r['spend']},{r['country']},{r['is_high_spender']}")
-         | "WriteToGCS" >> beam.io.WriteToText("gs://your-bucket/preprocessed/output", file_name_suffix=".csv", shard_name_template=""))
-
-if __name__ == "__main__":
-    run_pipeline()`
-};
 
 
 // =========================================================================
@@ -437,14 +143,18 @@ async function loadProgress() {
   } catch (e) { /* server unavailable, use empty state */ }
 }
 
+let _saveProgressTimer = null;
 async function saveProgress() {
-  try {
-    await fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(_progressData)
-    });
-  } catch (e) { /* silent */ }
+  clearTimeout(_saveProgressTimer);
+  _saveProgressTimer = setTimeout(async () => {
+    try {
+      await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(_progressData)
+      });
+    } catch (e) { /* silent */ }
+  }, 500);
 }
 
 // =========================================================================
@@ -452,6 +162,7 @@ async function saveProgress() {
 // =========================================================================
 document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
+  await loadQuestions();
   await loadProgress();
   initTrackerState();
   renderChecklist();
@@ -546,14 +257,16 @@ function initTrackerState() {
     trackerState = {};
   }
   // Ensure all items in DOMAINS_CHECKLIST are initialized in trackerState
+  let _dirty = false;
   DOMAINS_CHECKLIST.forEach(domain => {
     domain.items.forEach(item => {
       if (trackerState[item.id] === undefined) {
         trackerState[item.id] = false;
+        _dirty = true;
       }
     });
   });
-  saveTrackerState();
+  if (_dirty) saveTrackerState();
 }
 
 function saveTrackerState() {
@@ -701,11 +414,8 @@ function loadNotesDoc(filename) {
       loaderEl.classList.add("hidden");
       bodyEl.classList.remove("hidden");
     })
-    .catch(err => {
-      // Fallback to pre-loaded offline content if direct fetch fails (local file protocol)
-      console.warn("Falling back to local offline markdown text due to CORS restrictions.", err);
-      const fallbackHtml = NOTES_OFFLINE_FALLBACK[filename] || "<h3>Content not found offline.</h3>";
-      bodyEl.innerHTML = fallbackHtml;
+    .catch(() => {
+      bodyEl.innerHTML = '<h3>Content unavailable — server may be offline.</h3>';
       loaderEl.classList.add("hidden");
       bodyEl.classList.remove("hidden");
     });
@@ -746,9 +456,9 @@ function parseSimpleMarkdown(md) {
 
   // 5. Lists (ordered and unordered)
   html = html.replace(/^[*\-] (.*?)$/gm, '<li>$1</li>');
-  html = html.replace(/^\d+\.\s+(.*?)$/gm, '<oli>$1</oli>');
+  html = html.replace(/^\d+\.\s+(.*?)$/gm, '<__OL_LI__>$1</__OL_LI__>');
   html = html.replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, '<ul>$1</ul>');
-  html = html.replace(/((?:<oli>[^\n]*<\/oli>\n?)+)/g, (m) => '<ol>' + m.replace(/<\/?oli>/g, s => s.replace('oli', 'li')) + '</ol>');
+  html = html.replace(/((?:<__OL_LI__>[^\n]*<\/__OL_LI__>\n?)+)/g, (m) => '<ol>' + m.replace(/<__OL_LI__>/g, '<li>').replace(/<\/__OL_LI__>/g, '</li>') + '</ol>');
 
   // 6. Tables & Blockquotes (line-based parsing)
   const lines = html.split('\n');
@@ -865,6 +575,9 @@ function startQuiz() {
   if (mode === "quick") {
     // Select 10 random questions
     pool = shuffleArray(pool).slice(0, 10);
+  } else if (mode === "all") {
+    // Full pool, shuffled
+    pool = shuffleArray(pool);
   } else if (mode.startsWith("d")) {
     const domainNum = mode.substring(1);
     pool = pool.filter(q => q.domain.includes(`Domain ${domainNum}`));
@@ -1097,10 +810,8 @@ function loadCodeSnippet(filename) {
     .then(code => {
       codeEl.textContent = code;
     })
-    .catch(err => {
-      console.warn("Falling back to local offline code snippet text due to CORS restrictions.", err);
-      const fallbackCode = SNIPPET_OFFLINE_FALLBACK[filename] || "# Snippet not found offline.";
-      codeEl.textContent = fallbackCode;
+    .catch(() => {
+      codeEl.textContent = '# Snippet unavailable — server may be offline.';
     });
 }
 
@@ -1269,7 +980,7 @@ function renderSelectedDayDetails() {
     const iconClass = isTaskDone ? "fa-solid fa-circle-check" : "fa-regular fa-circle";
     
     tasksHtml += `
-      <li class="${taskDoneClass}" onclick="toggleSchedulerTask('${task.id}')">
+      <li class="${taskDoneClass}" data-task-id="${task.id}">
         <i class="${iconClass}"></i>
         <span>${task.text}</span>
         ${task.action ? `<span style="font-size: 0.75rem; color: var(--primary); margin-left: auto;">[Launch <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; color: var(--primary); margin-left: 2px;"></i>]</span>` : ""}
@@ -1289,25 +1000,34 @@ function renderSelectedDayDetails() {
     </ul>
     
     <div class="tdd-actions">
-      <button class="btn-secondary" onclick="markAllDayTasks(${allCompleted ? 'false' : 'true'})">
+      <button class="btn-secondary" id="tdd-mark-all-btn">
         <i class="fa-solid ${allCompleted ? 'fa-xmark' : 'fa-check'}"></i>
         <span>${allCompleted ? 'Mark Day Incomplete' : 'Mark Day Complete'}</span>
       </button>
     </div>
   `;
   
-  // Attach direct navigation events to task text/button clicks
+  // Attach event listeners (no inline onclick)
   const taskElements = detailBox.querySelectorAll(".tdd-tasks-list li");
   taskElements.forEach((el, index) => {
     const task = dayTasks[index];
+    el.addEventListener("click", (e) => {
+      const launchSpan = el.querySelector("span[style]");
+      if (launchSpan && launchSpan.contains(e.target)) return;
+      toggleSchedulerTask(task.id);
+    });
     const launchSpan = el.querySelector("span[style]");
     if (launchSpan) {
       launchSpan.addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent toggling the task checkbox
+        e.stopPropagation();
         executeSchedulerAction(task.action, task.target);
       });
     }
   });
+  const markAllBtn = detailBox.querySelector("#tdd-mark-all-btn");
+  if (markAllBtn) {
+    markAllBtn.addEventListener("click", () => markAllDayTasks(!allCompleted));
+  }
 }
 
 window.toggleSchedulerTask = function(taskId) {

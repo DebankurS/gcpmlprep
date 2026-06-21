@@ -1,0 +1,80 @@
+[
+  {
+    "id": 10,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your team is building an end-to-end ML pipeline. You want to enforce strict checks on incoming data schemas, compare model accuracy against a threshold before deploying, and ensure that all steps are strictly integrated and validated. The entire pipeline uses TensorFlow. Which SDK should you use for Vertex AI Pipelines?",
+    "options": [
+      "Kubeflow Pipelines (KFP) SDK",
+      "TensorFlow Extended (TFX) SDK",
+      "Apache Airflow SDK",
+      "Vertex AI SDK for Python"
+    ],
+    "answer": 1,
+    "explanation": "TensorFlow Extended (TFX) is an opinionated, production-grade SDK designed specifically for TensorFlow pipelines. It provides pre-built components like ExampleValidator (for schema validation) and Evaluator (for threshold checks and model analysis), making it the best fit for strict validation in a TF environment."
+  },
+  {
+    "id": 11,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You have trained a new model version (v2) for customer churn. You want to deploy v2 to production but minimize the risk of a regression. You want to route 95% of incoming customer requests to the stable v1 model and 5% to the new v2 model, monitoring the latency and error rates of v2. How should you implement this on Vertex AI?",
+    "options": [
+      "Create two separate Vertex AI Endpoints (one for v1, one for v2) and write client-side code that randomly routes requests with a 95/5 split.",
+      "Deploy both model versions (v1 and v2) to the same Vertex AI Endpoint, and configure the endpoint's traffic split option to assign 95% of traffic to v1 and 5% to v2.",
+      "Use Cloud Load Balancing in front of two VM instances hosting the models to distribute traffic.",
+      "Update the Model Registry to make v2 the default version, and set the autoscaling minimum node count of v2 to 1 and v1 to 19."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Endpoints natively support traffic splitting. You can deploy multiple model versions to a single endpoint and assign percentage weights to each (e.g., 95% to v1, 5% to v2). This allows canary deployments without changing client-side API target URLs."
+  },
+  {
+    "id": 12,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You are designing a continuous training pipeline. Whenever a new batch of labeled image data is uploaded to a specific Cloud Storage bucket, you want to automatically trigger a Vertex AI Pipeline run to retrain your image classifier. What is the most cloud-native way to achieve this with minimal code?",
+    "options": [
+      "Write a Cron job running on a Compute Engine VM that polls the bucket every hour for new files and executes a script.",
+      "Configure a Cloud Storage Pub/Sub notification to trigger on file creation, which calls a Cloud Function that executes the Vertex AI Pipeline Job.",
+      "Use Cloud Dataflow to monitor the bucket and trigger the pipeline.",
+      "Train the model inside a BigQuery ML script using the Cloud Storage external table connection."
+    ],
+    "answer": 1,
+    "explanation": "This is the classic event-driven MLOps architecture on GCP. A file upload to Cloud Storage triggers a Pub/Sub notification or Eventarc event, which triggers a serverless Cloud Function. The Cloud Function uses the Vertex AI SDK to trigger a Pipeline Job."
+  },
+  {
+    "id": 21,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You want to implement a secure prediction pipeline. Your model is deployed to a Vertex AI Endpoint. The client applications calling this endpoint are run on Compute Engine instances within a Virtual Private Cloud (VPC) network. For security reasons, you cannot allow traffic to travel over the public internet, and you must minimize network latency. How should you deploy the endpoint?",
+    "options": [
+      "Use Cloud VPN to encrypt predictions sent over the public internet.",
+      "Deploy the model to a Vertex AI Private Endpoint with VPC Network Peering enabled between your VPC and the Vertex AI service network.",
+      "Use Cloud Armor to filter out public requests based on IP addresses.",
+      "Store predictions in a GCS bucket and access them using IAM service accounts."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Private Endpoints use VPC Network Peering to establish a secure, low-latency, private connection between your Google Cloud VPC and the Google network hosting the Vertex AI Endpoint. Traffic remains inside Google's network, meeting the security and latency requirements."
+  },
+  {
+    "id": 25,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You are reviewing the model lifecycle of your production pipeline. Which service acts as the bridge between model training (Vertex AI Pipelines) and model serving (Vertex AI Endpoints) by storing model artifacts, versions, and metadata?",
+    "options": [
+      "Vertex AI Model Registry",
+      "Vertex AI Feature Store",
+      "Artifact Registry",
+      "Cloud Storage"
+    ],
+    "answer": 0,
+    "explanation": "Vertex AI Model Registry is the central repository for managing model versions, tracking metadata, and deploying models to endpoints. It acts as the bridge between model training pipelines (which output models) and model endpoints (which serve them)."
+  },
+  {
+    "id": 36,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your team is building a Vertex AI Custom Training job using a custom Docker container. You need to store the container image in a Google Cloud container registry. The image should be stored in the us-central1 region, with per-repository IAM controls and VPC Service Controls support. Which registry should you use and what image URI format is correct?",
+    "options": [
+      "Container Registry (gcr.io). URI format: gcr.io/my-project/trainer:v1",
+      "Artifact Registry. URI format: us-central1-docker.pkg.dev/my-project/ml-images/trainer:v1",
+      "Cloud Storage. URI format: gs://my-project-images/trainer.tar.gz",
+      "Container Registry with regional replication. URI format: us.gcr.io/my-project/trainer:v1"
+    ],
+    "answer": 1,
+    "explanation": "Artifact Registry is the current standard for storing Docker images on Google Cloud, replacing the deprecated Container Registry. It supports regional storage, per-repository IAM, VPC Service Controls, and multiple artifact formats. The URI format is REGION-docker.pkg.dev/PROJECT/REPOSITORY/IMAGE:TAG."
+  }
+]

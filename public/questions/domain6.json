@@ -1,0 +1,106 @@
+[
+  {
+    "id": 16,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are developing a customer support chatbot for an online retail store. The chatbot must answer questions about customer-specific orders, return statuses, and store-specific return policies that change frequently. You want to use the Gemini model but ensure it provides accurate, up-to-date, and grounded answers without hallucinating. What architecture should you use?",
+    "options": [
+      "Fine-tune the Gemini model using Supervised Fine-Tuning (SFT) on past customer support chats.",
+      "Use Retrieval-Augmented Generation (RAG) by converting store policies and order databases into embeddings, storing them in Vertex AI Vector Search, and passing relevant search context to Gemini at query time.",
+      "Create a larger prompt with 50 few-shot examples showing dummy order resolutions.",
+      "Deploy multiple Gemini endpoints and use a random traffic splitter to evaluate outputs."
+    ],
+    "answer": 1,
+    "explanation": "Retrieval-Augmented Generation (RAG) is the best pattern for grounding model outputs in private, dynamic, or frequently changing data. By retrieving order statuses and active policies from a database/index and passing them to Gemini as context, you prevent hallucinations and ensure accurate, real-time answers."
+  },
+  {
+    "id": 17,
+    "domain": "Domain 6: Generative AI",
+    "question": "You have a text summarization task. You need to summarize legal contracts. The legal terms are highly technical, and the summaries must follow a specific, rigid JSON schema containing keys like 'party_names', 'effective_date', and 'termination_clauses'. Prompt engineering is not consistently enforcing the JSON structure. What should you do?",
+    "options": [
+      "Use Vertex AI Vector Search to find similar summaries.",
+      "Fine-tune the foundation model using Supervised Fine-Tuning (SFT) on a dataset of contracts and their corresponding JSON summaries to learn the structural format.",
+      "Use the Vertex AI Vision API to extract text first.",
+      "Configure safety filters to block non-compliant outputs."
+    ],
+    "answer": 1,
+    "explanation": "Supervised Fine-Tuning (SFT) is highly effective when you need to teach a foundation model a specific output style, tone, or rigid formatting structure (like a specific JSON schema) that prompt engineering alone cannot reliably enforce."
+  },
+  {
+    "id": 18,
+    "domain": "Domain 6: Generative AI",
+    "question": "You want to deploy an enterprise-grade search system that searches across thousands of internal HR PDFs, Google Drive documents, and internal URLs. The system must allow employees to ask questions in natural language and receive synthesized answers grounded in the company documents. What Google Cloud tool allows you to build this search engine with the least coding?",
+    "options": [
+      "Vertex AI Vector Search",
+      "Vertex AI Agent Builder",
+      "BigQuery ML ML.GENERATE_TEXT",
+      "Cloud Dataflow + Custom Gemma model"
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Agent Builder is a high-level developer platform that allows you to easily connect Gemini to enterprise data sources (GCS, BigQuery, Google Drive, Websites) and create fully grounded search engines or AI agents with minimal coding."
+  },
+  {
+    "id": 23,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are setting up safety guidelines for an LLM application utilizing Gemini. You want to ensure that any output that contains sexually explicit content is blocked, but you want to allow medical terms and text. You configure Vertex AI safety settings. What parameter should you adjust?",
+    "options": [
+      "The temperature of the model generation.",
+      "The safety threshold for the 'Sexually Explicit' category (e.g., setting it to BLOCK_MEDIUM_AND_ABOVE).",
+      "The frequency penalty parameter.",
+      "Deploy a custom classification model to filter the prompts before calling Gemini."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI allows developers to configure safety thresholds for categories like 'Sexually Explicit' content. Setting the safety threshold to BLOCK_MEDIUM_AND_ABOVE will block responses flagged with medium or high probability, while allowing lower-probability occurrences (e.g., standard medical terminology)."
+  },
+  {
+    "id": 31,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are building a legal analysis tool where 10,000 employees per day ask questions about a single 400-page corporate policy document. Each request sends the full document as context to Gemini 2.5 Flash. Your cost per day is extremely high due to input token volume. What is the most cost-effective architectural change?",
+    "options": [
+      "Switch to Gemini 2.5 Pro which has a larger context window.",
+      "Use Vertex AI Context Caching to upload the document once, receive a cache name, and reference it in all subsequent requests instead of re-sending the full document.",
+      "Fine-tune Gemini on the policy document so the model internalizes it and requires no context at runtime.",
+      "Split the document into chunks and store in Vertex AI Vector Search, retrieving only the top 3 chunks per query."
+    ],
+    "answer": 1,
+    "explanation": "Context Caching allows you to upload a large, frequently reused prompt prefix (e.g., a large document) once to the Gemini API. All subsequent requests reference the cached content by name instead of re-sending the tokens. Cached tokens cost approximately 4x less than input tokens, dramatically reducing cost for high-volume, same-context workloads."
+  },
+  {
+    "id": 32,
+    "domain": "Domain 6: Generative AI",
+    "question": "Your team needs to fine-tune Gemini 2.0 Flash to output a specific JSON schema for contract extraction. You have a labeled dataset of 5,000 prompt-response pairs. Your GPU budget is limited and you need to minimize training compute hours. Which fine-tuning approach should you use on Vertex AI?",
+    "options": [
+      "Full Supervised Fine-Tuning (SFT) updating all model weights, as it will produce the highest accuracy.",
+      "PEFT adapter tuning (LoRA) using a low adapter_size parameter, which trains only small adapter layers while freezing base model weights, minimizing GPU usage.",
+      "Reinforcement Learning from Human Feedback (RLHF), because JSON formatting requires human preference signals.",
+      "Deploy the base Gemini model and use RAG to retrieve the JSON schema at runtime."
+    ],
+    "answer": 1,
+    "explanation": "PEFT (Parameter-Efficient Fine-Tuning) with LoRA freezes the base model weights and trains only small adapter layers. This achieves comparable results to full SFT while requiring significantly less GPU memory and compute hours. On Vertex AI, this is configured via the adapter_size parameter in the sft.train() call."
+  },
+  {
+    "id": 33,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are building two ML applications: (A) a complex multi-step code generation assistant that must solve competitive programming problems requiring deep chain-of-thought reasoning; (B) a high-volume batch pipeline that summarizes 500,000 news articles per day where cost-per-token matters most. Which Gemini models should you use for A and B respectively?",
+    "options": [
+      "A: Gemini 2.5 Flash, B: Gemini 2.5 Pro",
+      "A: Gemini 2.5 Pro (with thinking mode), B: Gemini 2.5 Flash",
+      "A: Gemma 3, B: Gemini 2.5 Flash",
+      "A: Gemini 2.5 Pro, B: Gemma 3 deployed on GKE"
+    ],
+    "answer": 1,
+    "explanation": "Gemini 2.5 Pro with thinking/reasoning mode is optimized for complex multi-step reasoning tasks (coding, math, deep analysis) and delivers the highest accuracy. Gemini 2.5 Flash is the best price-performance model for high-throughput, cost-sensitive batch workloads like summarization pipelines."
+  },
+  {
+    "id": 35,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are using Gemini 2.5 Flash to extract structured data from legal contracts. The output must conform to a strict JSON schema with required fields: 'party_names' (array of strings), 'effective_date' (string), and 'penalty_amount' (number). Prompt engineering with few-shot examples produces JSON about 80% of the time, but the remaining 20% causes downstream parsing failures. What is the most reliable fix?",
+    "options": [
+      "Increase the model temperature to 1.0 to produce more creative and varied JSON outputs.",
+      "Fine-tune Gemini on contract examples to internalize the JSON structure.",
+      "Use the response_schema parameter in GenerateContentConfig with response_mime_type='application/json' to enforce the exact JSON schema at the API level.",
+      "Add a Cloud Function post-processor that retries the Gemini call up to 5 times until valid JSON is returned."
+    ],
+    "answer": 2,
+    "explanation": "Controlled generation via response_schema (combined with response_mime_type='application/json') enforces schema compliance at the API level — Gemini is constrained to only output tokens that form a valid JSON object matching your schema. This guarantees 100% schema-valid output without fine-tuning or retry logic."
+  }
+]
