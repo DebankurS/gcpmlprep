@@ -415,11 +415,13 @@ function loadNotesDoc(filename) {
       bodyEl.innerHTML = html;
       loaderEl.classList.add("hidden");
       bodyEl.classList.remove("hidden");
+      if (window.Prism) Prism.highlightAllUnder(bodyEl);
     })
     .catch(() => {
       bodyEl.innerHTML = '<h3>Content unavailable — server may be offline.</h3>';
       loaderEl.classList.add("hidden");
       bodyEl.classList.remove("hidden");
+      if (window.Prism) Prism.highlightAllUnder(bodyEl);
     });
 }
 
@@ -432,9 +434,9 @@ function parseSimpleMarkdown(md) {
 
   // 1b. Placeholder Code Blocks
   const codeBlocks = [];
-  html = html.replace(/```(?:[a-zA-Z0-9_\-]+)?\n([\s\S]*?)```/g, (match, codeContent) => {
+  html = html.replace(/```([a-zA-Z0-9_\-]+)?\n([\s\S]*?)```/g, (match, lang, codeContent) => {
     const placeholder = `__CODE_BLOCK_PLACEHOLDER_${codeBlocks.length}__`;
-    codeBlocks.push(codeContent);
+    codeBlocks.push({ lang: lang || 'text', content: codeContent });
     return placeholder;
   });
 
@@ -550,8 +552,8 @@ function parseSimpleMarkdown(md) {
   });
 
   // 8. Restore Code Blocks
-  codeBlocks.forEach((codeContent, index) => {
-    html = html.replace(`__CODE_BLOCK_PLACEHOLDER_${index}__`, () => `<pre><code>${escHtml(codeContent)}</code></pre>`);
+  codeBlocks.forEach((block, index) => {
+    html = html.replace(`__CODE_BLOCK_PLACEHOLDER_${index}__`, () => `<pre><code class="language-${block.lang}">${escHtml(block.content)}</code></pre>`);
   });
 
   return html;

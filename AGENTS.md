@@ -10,6 +10,7 @@
 - `docker-compose.yml` — runs server.js via node:22-alpine on port 3000
 - `package.json` — project configuration & scripts
 - `test.js` — automated test suite
+- `TODO.md` — tracks remaining fixes and inconsistencies
 - `data/progress.json` — file-backed progress store (git-ignored, created at runtime)
 - `public/` — all web assets (mounted read-only into container)
   - `index.html` / `style.css` / `app.js` — single-page dashboard UI
@@ -25,6 +26,12 @@
 - **Documentation**: Preserve all existing comments/docstrings unrelated to the change.
 - **Links**: Use repo-relative paths for file/symbol links (e.g., `[app.js](./public/app.js)`).
 - **Gemini SDK**: All code snippets must use the `google-genai` SDK (`from google import genai`). The `vertexai.generative_models` module was removed on June 24, 2026 — never write code using it.
+
+## Keeping TODO.md current
+
+When completing any task listed in `TODO.md`, mark it done immediately:
+- Change `- [ ]` to `- [x]` for the completed item.
+- Do this in the same step as the fix — do not leave it for later.
 
 ## Keeping AGENTS.md current
 After any change to the repo, check if AGENTS.md is still accurate. Update it if you:
@@ -58,7 +65,7 @@ Agent/ADK/Agent Engine/A2A questions → Domain 7. GenAI (RAG, fine-tuning, Gemi
 ## Testing guidelines
 - The project includes an automated test suite in [test.js](./test.js) run via `npm test`.
 - **Always use Docker Compose** to spin up the server before running tests and tear it down after: `docker compose up -d && npm test && docker compose down`. Never run `node server.js` directly for testing.
-- **Integrity**: Questions in [public/questions/](./public/questions/) (`domain1.json` … `domain7.json`) must collectively form an array of at least 30 questions (currently 38 questions).
+- **Integrity**: Questions in [public/questions/](./public/questions/) (`domain1.json` … `domain7.json`) must collectively total exactly **38** questions. Adding or removing questions will fail the test suite.
 - **Structure**: Each question must have a numeric `id`, a string `domain` matching one of the 7 exact labels, a string `question`, an array of exactly 4 `options`, a numeric `answer` index (0-3), and a string `explanation`.
 - **Static Assets & Hyperlinks**: Tests verify the existence of all core files (HTML, CSS, JS, markdown, and templates) and ensure all local hyperlinks (`./docs/...`, etc.) inside markdown files are valid.
 - **Server Endpoints**: Tests verify endpoint status codes (200 for index, CSS, docs), 404 for missing files, traversal security, and POST `/api/progress` round-trip.
