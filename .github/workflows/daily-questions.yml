@@ -1,0 +1,62 @@
+name: Daily Question Generation
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate one new question per domain
+        uses: anthropics/claude-code-action@beta
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            Read AGENTS.md first for full project context.
+
+            Your task: add as many NEW, non-duplicate practice exam questions as possible to each of the 7 domain JSON files in public/questions/.
+
+            Domain files and their exact domain label strings:
+            - public/questions/domain1.json  →  "Domain 1: Framing & Architecture"
+            - public/questions/domain2.json  →  "Domain 2: Data Preparation & Processing"
+            - public/questions/domain3.json  →  "Domain 3: Model Development"
+            - public/questions/domain4.json  →  "Domain 4: MLOps & Pipelines"
+            - public/questions/domain5.json  →  "Domain 5: Monitoring & Responsible AI"
+            - public/questions/domain6.json  →  "Domain 6: Generative AI"
+            - public/questions/domain7.json  →  "Domain 7: Agents & Reasoning Engines"
+
+            For each file:
+            1. Read ALL existing questions. Extract every topic, scenario, and GCP service already covered.
+            2. Generate as many new questions as possible that cover topics, services, and scenarios NOT yet represented.
+               - Cover the full breadth of the PMLE exam syllabus for that domain.
+               - Each new question must test a distinct concept or scenario from all others (existing + newly generated).
+               - Stop only when you've exhausted non-duplicate topics for that domain.
+            3. Assign sequential ids starting from max existing id + 1.
+            4. Append all new questions to the array and write the file.
+
+            Required JSON schema for each question:
+            {
+              "id": <number>,
+              "domain": "<exact domain label string from above>",
+              "question": "<scenario-based question text>",
+              "options": ["<option A>", "<option B>", "<option C>", "<option D>"],
+              "answer": <0-3>,
+              "explanation": "<why the correct answer is right and others are wrong>"
+            }
+
+            Rules:
+            - Exactly 4 options per question.
+            - answer is 0-based index of the correct option.
+            - Use current GCP product names (Vertex AI, BigQuery ML, Dataflow, etc.).
+            - Domain 7 only: Agent/ADK/Agent Engine/A2A questions.
+            - Domain 6 only: RAG, fine-tuning, Gemini models, Vector Search questions.
+            - Verify answers against current GCP documentation where possible.
+            - Quality over speed: only add a question if it tests something genuinely distinct.
+
+            After updating all 7 files, commit with message: "chore: add daily practice questions [skip ci]"

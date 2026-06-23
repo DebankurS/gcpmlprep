@@ -64,7 +64,7 @@ Agent/ADK/Agent Engine/A2A questions → Domain 7. GenAI (RAG, fine-tuning, Gemi
 ## Testing guidelines
 - The project includes an automated test suite in [test.js](./test.js) run via `npm test`.
 - **Always use Docker Compose** to spin up the server before running tests and tear it down after: `docker compose up -d && npm test && docker compose down`. Never run `node server.js` directly for testing.
-- **Integrity**: Questions in [public/questions/](./public/questions/) (`domain1.json` … `domain7.json`) must collectively total exactly **60** questions. Adding or removing questions will fail the test suite.
+- **Integrity**: Questions in [public/questions/](./public/questions/) (`domain1.json` … `domain7.json`) must collectively total **at least 60** questions (bank grows daily via `.github/workflows/daily-questions.yml`). Removing questions below 60 will fail the test suite.
 - **Structure**: Each question must have a numeric `id`, a string `domain` matching one of the 7 exact labels, a string `question`, an array of exactly 4 `options`, a numeric `answer` index (0-3), and a string `explanation`.
 - **Static Assets & Hyperlinks**: Tests verify the existence of all core files (HTML, CSS, JS, markdown, and templates) and ensure all local hyperlinks (`./docs/...`, etc.) inside markdown files are valid.
 - **Server Endpoints**: Tests verify endpoint status codes (200 for index, CSS, docs), 404 for missing files, traversal security, and POST `/api/progress` round-trip.
