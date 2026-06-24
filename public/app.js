@@ -416,6 +416,15 @@ function loadNotesDoc(filename) {
       loaderEl.classList.add("hidden");
       bodyEl.classList.remove("hidden");
       if (window.Prism) Prism.highlightAllUnder(bodyEl);
+      if (window.renderMathInElement) {
+        window.renderMathInElement(bodyEl, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ],
+          throwOnError: false
+        });
+      }
     })
     .catch(() => {
       bodyEl.innerHTML = '<h3>Content unavailable — server may be offline.</h3>';
