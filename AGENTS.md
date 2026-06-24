@@ -19,7 +19,7 @@
   - `src/snippets/` — GCP ML code templates
 
 ## Code style and conventions
-- **Technologies**: Vanilla HTML, Vanilla CSS, pure JavaScript — no frameworks.
+- **Technologies**: Vanilla HTML, Vanilla CSS, pure JavaScript — no frameworks (the `marked` library via CDN is permitted for client-side markdown parsing to ensure correct rendering).
 - **Server**: `server.js` (zero-dependency Node stdlib) via Docker Compose only. Do not add npm dependencies.
 - **Persistence**: Progress stored in `progress.json` via `GET/POST /api/progress`. Do not use localStorage for tracker or scheduler state — theme preference only.
 - **Formatting**: GitHub-style markdown for all docs and responses.

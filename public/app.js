@@ -425,138 +425,22 @@ function loadNotesDoc(filename) {
     });
 }
 
-// Simple regex-based Markdown parser to render files correctly in the dashboard
+// Simple Markdown parser wrapping the CDN 'marked' library to render files correctly in the dashboard
 function parseSimpleMarkdown(md) {
-  let html = md;
+  if (!md) return '';
   
-  // 1. Strip mermaid blocks before general code block extraction
-  html = html.replace(/```mermaid[\s\S]*?```/g, '');
+  // 1. Strip mermaid blocks before passing to marked since we don't render diagrams dynamically
+  let cleanMd = md.replace(/```mermaid[\s\S]*?```/g, '');
 
-  // 1b. Placeholder Code Blocks
-  const codeBlocks = [];
-  html = html.replace(/```([a-zA-Z0-9_\-]+)?\n([\s\S]*?)```/g, (match, lang, codeContent) => {
-    const placeholder = `__CODE_BLOCK_PLACEHOLDER_${codeBlocks.length}__`;
-    codeBlocks.push({ lang: lang || 'text', content: codeContent });
-    return placeholder;
-  });
+  // 2. Pre-process GFM Callout alerts (e.g. > [!NOTE]) into bold text inside blockquotes so they display correctly
+  cleanMd = cleanMd.replace(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/gm, '> **$1:**$2');
 
-  // 2. Placeholder Inline Code
-  const inlineCodes = [];
-  html = html.replace(/`([^`]+)`/g, (match, codeContent) => {
-    const placeholder = `__INLINE_CODE_PLACEHOLDER_${inlineCodes.length}__`;
-    inlineCodes.push(codeContent);
-    return placeholder;
-  });
-
-  // 3. Headers
-  html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
-  html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^---$/gm, '<hr>');
-
-  // 4. Bold and Italic
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-  // 5. Lists (ordered and unordered)
-  html = html.replace(/^[*\-] (.*?)$/gm, '<li>$1</li>');
-  html = html.replace(/^\d+\.\s+(.*?)$/gm, '<__OL_LI__>$1</__OL_LI__>');
-  html = html.replace(/((?:<li>[^\n]*<\/li>\n?)+)/g, '<ul>$1</ul>');
-  html = html.replace(/((?:<__OL_LI__>[^\n]*<\/__OL_LI__>\n?)+)/g, (m) => '<ol>' + m.replace(/<__OL_LI__>/g, '<li>').replace(/<\/__OL_LI__>/g, '</li>') + '</ol>');
-
-  // 6. Tables & Blockquotes (line-based parsing)
-  const lines = html.split('\n');
-  let inTable = false;
-  let isFirstRow = true;
-  let tableHtml = '<table>';
-  let inBlockquote = false;
-  let blockquoteContent = '';
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Blockquote handling
-    if (line.startsWith('>')) {
-      if (inTable) {
-        inTable = false;
-        tableHtml += '</table>';
-        lines[i] = tableHtml + '\n' + lines[i];
-      }
-      
-      if (!inBlockquote) {
-        inBlockquote = true;
-        blockquoteContent = '';
-      }
-      
-      let text = line.substring(1).trim();
-      if (text.startsWith('[!')) {
-        const closeBracketIdx = text.indexOf(']');
-        if (closeBracketIdx !== -1) {
-          const alertType = text.substring(2, closeBracketIdx);
-          const rest = text.substring(closeBracketIdx + 1).trim();
-          text = `<strong>${alertType}:</strong> ${rest}`;
-        }
-      }
-      blockquoteContent += (blockquoteContent ? '<br>' : '') + text;
-      lines[i] = '';
-      continue;
-    } else {
-      if (inBlockquote) {
-        inBlockquote = false;
-        lines[i] = `<blockquote>${blockquoteContent}</blockquote>\n` + lines[i];
-      }
-    }
-
-    // Table handling
-    if (line.startsWith('|')) {
-      if (!inTable) {
-        inTable = true;
-        isFirstRow = true;
-        tableHtml = '<table>';
-      }
-      const cols = line.split('|').slice(1, -1).map(c => c.trim());
-      // Skip delimiter lines e.g. | :--- | :--- |
-      if (cols.every(c => c.startsWith(':') || c.startsWith('-'))) {
-        lines[i] = '';
-        continue;
-      }
-      
-      const tag = isFirstRow ? 'th' : 'td';
-      tableHtml += '<tr>' + cols.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
-      isFirstRow = false;
-      lines[i] = '';
-    } else {
-      if (inTable) {
-        inTable = false;
-        tableHtml += '</table>';
-        lines[i] = tableHtml + '\n' + lines[i];
-      }
-    }
+  // 3. Parse Markdown using window.marked if available, falling back to original raw content if load failed
+  if (window.marked) {
+    return window.marked.parse(cleanMd);
   }
   
-  if (inBlockquote) {
-    lines.push(`<blockquote>${blockquoteContent}</blockquote>`);
-  }
-  if (inTable) {
-    tableHtml += '</table>';
-    lines.push(tableHtml);
-  }
-  
-  html = lines.join('\n');
-
-  const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  // 7. Restore Inline Code
-  inlineCodes.forEach((codeContent, index) => {
-    html = html.replace(`__INLINE_CODE_PLACEHOLDER_${index}__`, () => `<code>${escHtml(codeContent)}</code>`);
-  });
-
-  // 8. Restore Code Blocks
-  codeBlocks.forEach((block, index) => {
-    html = html.replace(`__CODE_BLOCK_PLACEHOLDER_${index}__`, () => `<pre><code class="language-${block.lang}">${escHtml(block.content)}</code></pre>`);
-  });
-
-  return html;
+  return `<pre>${cleanMd}</pre>`;
 }
 
 // =========================================================================
