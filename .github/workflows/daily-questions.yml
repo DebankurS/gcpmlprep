@@ -21,10 +21,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: --max-turns 20
           prompt: |
             Read AGENTS.md first for full project context.
 
-            Your task: add as many NEW, non-duplicate practice exam questions as possible to each of the 7 domain JSON files in public/questions/.
+            Your task: add between 2 and 5 NEW, non-duplicate practice exam questions to each of the 7 domain JSON files in public/questions/.
 
             Domain files and their exact domain label strings:
             - public/questions/domain1.json  →  "Domain 1: Framing & Architecture"
@@ -37,10 +38,9 @@ jobs:
 
             For each file:
             1. Read ALL existing questions. Extract every topic, scenario, and GCP service already covered.
-            2. Generate as many new questions as possible that cover topics, services, and scenarios NOT yet represented.
+            2. Generate minimum 2 and maximum 5 new questions that cover topics, services, and scenarios NOT yet represented.
                - Cover the full breadth of the PMLE exam syllabus for that domain.
                - Each new question must test a distinct concept or scenario from all others (existing + newly generated).
-               - Stop only when you've exhausted non-duplicate topics for that domain.
             3. Assign sequential ids starting from max existing id + 1.
             4. Append all new questions to the array and write the file.
 
@@ -63,4 +63,16 @@ jobs:
             - Verify answers against current GCP documentation where possible.
             - Quality over speed: only add a question if it tests something genuinely distinct.
 
-            After updating all 7 files, commit with message: "chore: add daily practice questions [skip ci]"
+            Write all 7 files with the updated JSON. Do not commit or push the changes.
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/questions/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: add daily practice questions [skip ci]"
+            git push
+          else
+            echo "No changes to commit"
+          fi
