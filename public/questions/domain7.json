@@ -69,13 +69,13 @@
     "domain": "Domain 7: Agents & Reasoning Engines",
     "question": "A customer support agent on Vertex AI needs to remember the user's name across multiple turns (within a conversation) AND remember product facts across all conversations. Which memory types address each need?",
     "options": [
-      "Store all memory in the system prompt \u2014 it persists across all conversations automatically.",
+      "Store all memory in the system prompt — it persists across all conversations automatically.",
       "**Session memory** for within-conversation state (user name, current issue): managed as session context passed with each API call via the `Session` object. **Persistent/long-term memory** for cross-conversation facts (product knowledge, customer history): stored in a database (Firestore or BigQuery) or Vertex AI Vector Search, retrieved via explicit tool calls at the start of each session.",
       "Use context caching for within-conversation state and model fine-tuning for cross-conversation knowledge.",
-      "Vertex AI Agent Engine manages all memory types automatically \u2014 no explicit design is required."
+      "Vertex AI Agent Engine manages all memory types automatically — no explicit design is required."
     ],
     "answer": 1,
-    "explanation": "Agent memory architecture: (1) Short-term/session memory: conversation history (turns) passed in the `contents` list of each API call, or managed by the Agent Engine `Session` object \u2014 automatically scoped to one conversation. (2) Long-term memory: persisted in external storage (Firestore for structured data, Bigtable for low-latency lookups, Vector Search for semantic retrieval) and accessed via agent tools. The agent decides when to call the retrieval tool, enabling personalization across sessions."
+    "explanation": "Agent memory architecture: (1) Short-term/session memory: conversation history (turns) passed in the `contents` list of each API call, or managed by the Agent Engine `Session` object — automatically scoped to one conversation. (2) Long-term memory: persisted in external storage (Firestore for structured data, Bigtable for low-latency lookups, Vector Search for semantic retrieval) and accessed via agent tools. The agent decides when to call the retrieval tool, enabling personalization across sessions."
   },
   {
     "id": 60,
@@ -88,6 +88,45 @@
       "Deploy functions as Cloud Run services and pass their URLs to Gemini as system prompt context."
     ],
     "answer": 1,
-    "explanation": "Gemini function calling (tool use): define each callable function as a `FunctionDeclaration` with its name, description, and typed parameter schema (using `Schema` objects). Register declarations in a `Tool` object and pass to `generate_content()`. When Gemini decides to call a function, it returns `content.parts[0].function_call` \u2014 your application executes the real function logic and passes the result back as a `FunctionResponse` in the next turn. Gemini uses the result to generate the final response."
+    "explanation": "Gemini function calling (tool use): define each callable function as a `FunctionDeclaration` with its name, description, and typed parameter schema (using `Schema` objects). Register declarations in a `Tool` object and pass to `generate_content()`. When Gemini decides to call a function, it returns `content.parts[0].function_call` — your application executes the real function logic and passes the result back as a `FunctionResponse` in the next turn. Gemini uses the result to generate the final response."
+  },
+  {
+    "id": 79,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are a Python developer building a research agent that must search the web for recent news, execute Python data analysis code, call custom REST APIs, and maintain multi-turn conversation context. The agent requires dynamic decision-making about which tool to invoke at each reasoning step. Which Vertex AI offering is designed for building this type of custom Python agent with full programmatic control?",
+    "options": [
+      "Vertex AI Agent Studio (Playbooks): a no-code interface for defining agent behavior using natural language playbooks and tool configurations.",
+      "Vertex AI Agent Engine alone: a managed runtime for hosting already-built agents, but it does not provide an SDK for authoring agent reasoning logic.",
+      "Vertex AI Agent Development Kit (ADK): a Python SDK for building multi-step reasoning agents. Define tools as decorated Python functions, compose agents with sub-agents, configure the Gemini model and its tools, then deploy the finished agent to Agent Engine. ADK manages the ReAct reasoning loop, tool dispatch, and conversation state natively.",
+      "Vertex AI Pipelines with KFP SDK: define each reasoning step as a pipeline component and use conditional branching to select which tool to invoke."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Agent Development Kit (ADK) is the Python SDK for building custom agents with full programmatic control. Key ADK concepts: (1) Tools: Python functions exposed to the Gemini model as callable declarations; (2) Agent: the core reasoning loop (ReAct pattern) that selects and invokes tools based on the model's decisions; (3) Sub-agents: agents can delegate to specialized child agents; (4) Sessions: conversation history managed by the ADK runtime. Built agents are deployed to Vertex AI Agent Engine for scalable managed hosting. Agent Studio is the no-code alternative for non-developers using playbooks — ADK is for developers who need custom Python logic and tool composition."
+  },
+  {
+    "id": 80,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are building a Gemini-powered data analysis assistant that should write Python code to answer user questions about datasets (e.g., 'What is the trend in Q4 revenue by region?') and execute that code in a sandboxed environment to return actual computed results. Which Gemini/Vertex AI capability enables in-context code generation AND execution in a single API call?",
+    "options": [
+      "Use Gemini function calling: define a `run_python(code: str)` FunctionDeclaration, then call a Cloud Function to execute the code in a separate sandboxed environment and return the result.",
+      "Enable the **code_execution tool** in the Gemini API: `Tool(code_execution=CodeExecution())`. When configured, Gemini writes Python code and executes it in a built-in sandboxed interpreter during generation, returning both the code and the execution output (stdout, computed values) directly in the response.",
+      "Use Vertex AI Workbench as the code execution backend — Gemini sends code to a running notebook kernel via the Jupyter API.",
+      "Parse Gemini's output for code blocks and execute them with Python's `exec()` in the calling application after the API call completes."
+    ],
+    "answer": 1,
+    "explanation": "Gemini's native code execution tool provides a built-in sandboxed Python interpreter. When `Tool(code_execution=CodeExecution())` is enabled, Gemini can write Python code and execute it autonomously during content generation — the model generates code, runs it in the sandbox, observes the output, and incorporates results into its final response, all within a single API call. This is distinct from function calling (which calls external user-defined systems): code execution is a self-contained capability for computational reasoning. Supports numpy, pandas, and matplotlib. In the google-genai SDK: `client.models.generate_content(model='gemini-2.5-flash', config=GenerateContentConfig(tools=[Tool(code_execution=CodeExecution())]))`."
+  },
+  {
+    "id": 81,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are using the Vertex AI Agent Development Kit (ADK) to build a multi-agent research system. A Coordinator agent must delegate document retrieval tasks to a Search sub-agent and data processing tasks to an Analysis sub-agent, then synthesize their outputs. How does ADK support this supervisor-specialist pattern?",
+    "options": [
+      "Agents in ADK cannot communicate with each other — each agent is an isolated process. Use Cloud Pub/Sub to pass task messages between them.",
+      "Register the Search Agent and Analysis Agent as sub-agents of the Coordinator using ADK's multi-agent composition API. The Coordinator's model sees sub-agents as callable tools in its function namespace and decides when to delegate based on the task. Each sub-agent maintains its own tool set and reasoning context.",
+      "Use the A2A protocol exclusively — ADK agents cannot directly call each other and must communicate via A2A HTTP endpoints even when deployed in the same codebase.",
+      "Use Cloud Pub/Sub: the Coordinator publishes tasks to topic-specific queues and sub-agents subscribe to their respective topics."
+    ],
+    "answer": 1,
+    "explanation": "ADK multi-agent composition: sub-agents are registered with a parent (Coordinator) agent, and the parent's model sees them as invokable tools in its function call namespace. When the Coordinator needs to retrieve documents, it issues a function call to the Search sub-agent's reasoning loop, which uses its own tools (e.g., Google Search, Vector Search) and returns a result. The Coordinator incorporates the result and may delegate further to the Analysis sub-agent. For cross-service agent coordination where agents are deployed independently as separate services, the A2A protocol provides an open standard. Within the same ADK codebase, direct sub-agent composition is simpler and avoids the overhead of HTTP-based A2A communication."
   }
 ]

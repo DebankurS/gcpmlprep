@@ -83,7 +83,7 @@
     "question": "When should you use Vertex AI Pipelines vs Cloud Composer (Apache Airflow) for ML workflow orchestration?",
     "options": [
       "Use Cloud Composer for all ML orchestration; Vertex AI Pipelines is only for model serving.",
-      "Use **Vertex AI Pipelines** for ML-centric workflows (data prep \u2192 training \u2192 evaluation \u2192 deployment): native artifact tracking, Vertex AI component integration, typed inputs/outputs. Use **Cloud Composer** for broader data engineering DAGs involving non-ML systems, complex scheduling, or when you need Airflow's rich operator ecosystem. They coexist: Composer can trigger a Vertex Pipeline as one of its tasks.",
+      "Use **Vertex AI Pipelines** for ML-centric workflows (data prep → training → evaluation → deployment): native artifact tracking, Vertex AI component integration, typed inputs/outputs. Use **Cloud Composer** for broader data engineering DAGs involving non-ML systems, complex scheduling, or when you need Airflow's rich operator ecosystem. They coexist: Composer can trigger a Vertex Pipeline as one of its tasks.",
       "Vertex AI Pipelines requires Kubeflow SDK v1; Cloud Composer supports only Airflow DAGs.",
       "Cloud Composer is serverless; Vertex AI Pipelines requires managing Kubernetes clusters."
     ],
@@ -98,10 +98,10 @@
       "Delete the current Vertex AI Endpoint and create a new one with the new model.",
       "Upload the new model to **Vertex AI Model Registry**, then update the Endpoint's **traffic split**: deploy the new model at 10% traffic alongside the existing model at 90% (`endpoint.deploy(model=new_model, traffic_percentage=10)`). Gradually increase to 100% and undeploy the old model version. Vertex AI handles traffic shifting with zero downtime.",
       "Export the new model as TFLite and update the serving container's mounted volume.",
-      "Use Cloud Build to deploy \u2014 it automatically handles zero-downtime for Vertex AI endpoints."
+      "Use Cloud Build to deploy — it automatically handles zero-downtime for Vertex AI endpoints."
     ],
     "answer": 1,
-    "explanation": "Vertex AI Endpoints support multiple deployed model versions with configurable traffic percentages. Traffic splits are updated as a metadata operation \u2014 no endpoint restart or downtime. This enables canary deployment (10% \u2192 50% \u2192 100%) with per-version latency and error metrics visible in Cloud Monitoring. When you're confident, call `endpoint.undeploy(deployed_model_id)` to remove the old version."
+    "explanation": "Vertex AI Endpoints support multiple deployed model versions with configurable traffic percentages. Traffic splits are updated as a metadata operation — no endpoint restart or downtime. This enables canary deployment (10% → 50% → 100%) with per-version latency and error metrics visible in Cloud Monitoring. When you're confident, call `endpoint.undeploy(deployed_model_id)` to remove the old version."
   },
   {
     "id": 50,
@@ -111,7 +111,7 @@
       "Write a Cloud Run service that samples 1% of requests and runs statistical tests against training data in BigQuery.",
       "Enable **Vertex AI Model Monitoring** on the endpoint: specify the training dataset (BigQuery or GCS) as the baseline, configure skew/drift thresholds per feature, and set alert notification channels (email via Cloud Monitoring). Vertex AI samples production traffic, computes feature statistics, and alerts when thresholds are exceeded.",
       "Use Cloud Logging to capture prediction inputs and run a Dataflow pipeline to compare distributions.",
-      "Enable Vertex AI Explainability \u2014 it also detects distribution shifts as a side effect."
+      "Enable Vertex AI Explainability — it also detects distribution shifts as a side effect."
     ],
     "answer": 1,
     "explanation": "Vertex AI Model Monitoring (now part of Vertex AI Model Registry / Endpoint monitoring) samples a configurable percentage of production prediction requests, aggregates feature statistics over time windows, and compares them to the training baseline using statistical tests. Alert thresholds are configurable per feature. Alerts fire to Cloud Monitoring notification channels (email, PagerDuty, Slack). It handles both training-serving skew (comparing to training data) and prediction drift (comparing recent windows to previous windows)."
@@ -121,12 +121,51 @@
     "domain": "Domain 4: MLOps & Pipelines",
     "question": "A Vertex AI Pipeline run fails at the evaluation step. You need to trace exactly which dataset version was fed into training, which training container was used, and what metrics the model achieved before failure. Where is this recorded?",
     "options": [
-      "Check Cloud Logging \u2014 all metadata is in the log entries.",
-      "**Vertex AI Metadata Store** (ML Metadata / MLMD): Vertex AI Pipelines automatically records all artifacts (datasets, models, metrics) and their lineage (which artifacts are inputs/outputs of which steps). View in the Cloud Console \u2192 Vertex AI \u2192 Pipelines \u2192 Run \u2192 Artifacts, or query via `aiplatform.Artifact.list()`. The lineage DAG shows exactly how data flowed through the pipeline.",
+      "Check Cloud Logging — all metadata is in the log entries.",
+      "**Vertex AI Metadata Store** (ML Metadata / MLMD): Vertex AI Pipelines automatically records all artifacts (datasets, models, metrics) and their lineage (which artifacts are inputs/outputs of which steps). View in the Cloud Console → Vertex AI → Pipelines → Run → Artifacts, or query via `aiplatform.Artifact.list()`. The lineage DAG shows exactly how data flowed through the pipeline.",
       "Use Cloud Trace to inspect inter-component communication in the pipeline.",
       "Download the failed pipeline's Argo Workflow YAML from GKE to reconstruct artifact lineage."
     ],
     "answer": 1,
     "explanation": "Vertex AI Metadata Store is backed by ML Metadata (MLMD), the same open-source library used by TFX. Every Vertex AI Pipeline step automatically records: input artifact URIs and types, output artifact URIs and types, execution parameters, and the execution-to-artifact edges that form the lineage graph. After a pipeline failure, you can inspect the partial lineage to see exactly what ran successfully before the failure, which artifacts were produced, and what metrics were logged."
+  },
+  {
+    "id": 70,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your ML team wants to implement CI/CD for their training pipeline. Every time code is merged to the main branch in Cloud Source Repositories, you want to: (1) build a new Docker training container, (2) push it to Artifact Registry, and (3) automatically trigger a Vertex AI Pipeline run with the new container. Which GCP service should orchestrate steps 1 and 2, and what triggers step 3?",
+    "options": [
+      "Use Vertex AI Pipelines for all three steps — it has built-in Docker build support and can trigger itself on code commits.",
+      "Use Cloud Build triggered on a push to the main branch: define a cloudbuild.yaml with steps to build the Docker image, push to Artifact Registry, then call the Vertex AI Pipelines REST API to submit a pipeline run using the new container image URI.",
+      "Use Cloud Composer (Airflow) with a GitSensor to detect commits, DockerOperator to build the image, and a Vertex AI PipelineOperator to trigger the run.",
+      "Use Cloud Functions triggered by Cloud Source Repositories push events to build containers using the Docker SDK installed in the function runtime."
+    ],
+    "answer": 1,
+    "explanation": "Cloud Build is GCP's managed CI/CD service for building, testing, and deploying software. A cloudbuild.yaml trigger on push to main: (1) a `docker build` step builds the training image; (2) a `docker push` step uploads to Artifact Registry; (3) a custom step calls the Vertex AI Pipelines API (via the Python SDK or gcloud CLI) to submit a pipeline run with the new image URI. Cloud Build triggers integrate natively with Cloud Source Repositories, GitHub, and GitLab. This is the standard GCP MLOps CI/CD pattern for automating the container-build-to-pipeline-run flow."
+  },
+  {
+    "id": 71,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Each night you need to generate churn probability scores for 50 million customer records stored in BigQuery. The scores feed into email campaigns sent the next morning. Calling a Vertex AI Online Endpoint 50 million times is too expensive and impractical at that throughput. What is the most cost-effective and operationally appropriate approach?",
+    "options": [
+      "Call the Vertex AI Online Prediction Endpoint 50 million times from a Cloud Dataflow pipeline, batching requests in groups of 100.",
+      "Deploy the XGBoost model to Cloud Run and invoke it with a Pub/Sub-triggered pipeline that parallelizes the 50 million records.",
+      "Use Vertex AI Batch Prediction: submit a BatchPredictionJob specifying the model, the BigQuery input table, and a BigQuery output destination. Vertex AI automatically provisions compute, distributes the 50 million records across workers, generates all predictions, writes results to the output table, and tears down compute — no persistent endpoint required.",
+      "Schedule a Cloud Composer DAG that loops over all records in BigQuery and calls a Cloud Function for each row's prediction."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Batch Prediction is purpose-built for large-scale offline inference. Key advantages over Online Prediction for batch workloads: (1) no endpoint needs to run 24/7, reducing cost; (2) Vertex AI auto-provisions and scales compute for the job duration only; (3) integrates natively with BigQuery (input/output) and GCS; (4) significantly cheaper per prediction than online endpoints for large batch volumes. Online Endpoints are optimized for low-latency interactive requests. Cloud Dataflow + Online Endpoint adds unnecessary complexity and costs from sustained endpoint traffic. A BatchPredictionJob scales to hundreds of millions of rows within a single job submission."
+  },
+  {
+    "id": 72,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You are choosing between two retraining strategies for a production fraud detection model: (A) retrain on a fixed weekly schedule regardless of model performance; (B) retrain only when Vertex AI Model Monitoring detects that input feature distributions drift beyond a configured threshold. Which strategy is more resource-efficient, and what is the main trade-off of strategy B?",
+    "options": [
+      "Strategy A (schedule-based) is always better: it ensures the model sees fresh data continuously and prevents staleness even when distributions haven't changed.",
+      "Strategy B (drift-triggered retraining) is more resource-efficient: it avoids unnecessary training costs when the model remains accurate. The main trade-off is that it requires robust monitoring infrastructure and proxy signals (feature drift, prediction confidence shifts) because ground-truth labels for concept drift detection may arrive with a delay.",
+      "Both strategies are equivalent — the choice depends entirely on team preference.",
+      "Strategy A is mandatory for fraud detection because fraud patterns change daily; drift-triggered retraining is too slow to respond."
+    ],
+    "answer": 1,
+    "explanation": "Drift/performance-triggered retraining retrains only when necessary, avoiding wasteful compute. However, it requires robust monitoring: ground-truth fraud labels arrive days to weeks later via chargebacks, so you monitor feature distributions (training-serving skew) as a leading indicator using Vertex AI Model Monitoring. When skew exceeds a threshold, a Cloud Monitoring alert triggers a Cloud Function that submits a Vertex AI Pipeline retraining job. Schedule-based retraining is simpler but wasteful when distributions are stable. A common production pattern is hybrid: trigger on drift threshold OR on a fallback schedule (e.g., monthly at minimum) to guard against monitoring blind spots."
   }
 ]

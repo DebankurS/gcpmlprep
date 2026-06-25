@@ -45,7 +45,7 @@
     "options": [
       "Run a daily Vertex AI Batch Prediction job to score all users, store results in Bigtable, and serve via lookup.",
       "Hybrid architecture: run batch prediction jobs every 15 minutes to pre-compute recommendations for all users and store results in Cloud Bigtable. The app reads from Bigtable at request time (< 5ms), achieving the 100ms SLA while reflecting purchases within 15 minutes.",
-      "Online prediction: deploy a Vertex AI Endpoint and call it directly at request time \u2014 Vertex AI guarantees 100ms latency.",
+      "Online prediction: deploy a Vertex AI Endpoint and call it directly at request time — Vertex AI guarantees 100ms latency.",
       "Stream purchase events to Pub/Sub and call a Vertex AI endpoint in real-time for each event."
     ],
     "answer": 1,
@@ -57,7 +57,7 @@
     "question": "A new mobile app has zero user history. A data scientist proposes a collaborative filtering model. A PM proposes showing bestsellers by region to new users. Which is more defensible at this stage, and why?",
     "options": [
       "The ML model is always preferable because it adapts to individual users.",
-      "Start with the heuristic (bestsellers by region): it ships fast, creates logging infrastructure to collect the interaction data ML needs, and establishes a baseline. Collaborative filtering requires sufficient user interaction history \u2014 new users have none (the cold-start problem). Build ML when data is available and the heuristic's ceiling is measurable.",
+      "Start with the heuristic (bestsellers by region): it ships fast, creates logging infrastructure to collect the interaction data ML needs, and establishes a baseline. Collaborative filtering requires sufficient user interaction history — new users have none (the cold-start problem). Build ML when data is available and the heuristic's ceiling is measurable.",
       "Run both simultaneously from day one and let an A/B test determine the winner immediately.",
       "Implement deep learning immediately to avoid technical debt later."
     ],
@@ -69,12 +69,51 @@
     "domain": "Domain 1: Framing & Architecture",
     "question": "You are classifying support tickets where each ticket may belong to MULTIPLE categories (e.g., 'billing' AND 'technical' AND 'urgent') simultaneously. Should you use multiclass or multi-label classification, and what changes in the model output layer?",
     "options": [
-      "Use multiclass classification (softmax output) \u2014 softmax can handle multiple categories.",
+      "Use multiclass classification (softmax output) — softmax can handle multiple categories.",
       "Use **multi-label classification**: predict an independent binary probability per category using sigmoid activation per output neuron (not softmax). Softmax forces mutual exclusivity (probabilities sum to 1), which is wrong when multiple labels coexist. In Keras: `Dense(num_classes, activation='sigmoid')` with `binary_crossentropy` loss; threshold each output independently.",
       "Multi-label is only available in Vertex AI AutoML Vision, not for text tasks.",
       "Use a ranking model that outputs categories in priority order and selects the top-k per ticket."
     ],
     "answer": 1,
-    "explanation": "Multiclass classification (softmax): exactly one class per sample \u2014 outputs are mutually exclusive probabilities summing to 1. Multi-label classification (sigmoid per output): each output is an independent binary prediction \u2014 any combination of labels is valid. For support tickets with co-occurring categories, sigmoid + binary_crossentropy is correct. Vertex AI AutoML Text supports multi-label classification natively."
+    "explanation": "Multiclass classification (softmax): exactly one class per sample — outputs are mutually exclusive probabilities summing to 1. Multi-label classification (sigmoid per output): each output is an independent binary prediction — any combination of labels is valid. For support tickets with co-occurring categories, sigmoid + binary_crossentropy is correct. Vertex AI AutoML Text supports multi-label classification natively."
+  },
+  {
+    "id": 61,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "Your team needs to build a customer lifetime value (CLV) prediction model on a 500,000-row tabular dataset with 80 features. The team has Python expertise but no deep learning experience, and time-to-market is 3 weeks. A junior ML engineer suggests training a custom XGBoost model from scratch. A senior engineer suggests Vertex AI AutoML Tabular. Which approach is more appropriate at this stage?",
+    "options": [
+      "Use a custom XGBoost model on Vertex AI Custom Training: it gives full control over feature engineering and hyperparameter tuning, producing a better model within 3 weeks.",
+      "Use Vertex AI AutoML Tabular: it automatically handles feature engineering, hyperparameter search, and model selection across multiple algorithms (XGBoost, neural networks, etc.), typically achieving strong results without deep ML expertise and ships within days rather than weeks.",
+      "Use BigQuery ML with CREATE MODEL TYPE='BOOSTED_TREE_REGRESSOR' since the team has Python skills and BigQuery ML trains faster than AutoML.",
+      "Build the model using TensorFlow on Vertex AI Custom Training; AutoML is only suitable for image and text data, not tabular regression."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI AutoML Tabular is purpose-built for teams without deep ML expertise and with tight timelines. It automates feature engineering, model selection (XGBoost, wide-and-deep, TabNet, etc.), and hyperparameter tuning, often matching or exceeding hand-tuned baselines. The 3-week timeline and Python-but-not-DL skill profile makes AutoML the correct starting point. Custom training is appropriate when you need full control over model architecture or have specialized preprocessing requirements — but should not be the first choice when time and ML expertise are constrained."
+  },
+  {
+    "id": 62,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "Your team needs to forecast daily demand for 1,000 SKUs for the next 30 days using historical sales data already stored in BigQuery. The team consists only of SQL analysts with no Python experience. The solution must automatically handle seasonal patterns and national holidays. What is the most appropriate GCP approach?",
+    "options": [
+      "Export data to Cloud Storage and use Vertex AI AutoML Tabular time-series forecasting with a Python SDK configuration script.",
+      "Use BigQuery ML with CREATE MODEL TYPE='ARIMA_PLUS': train 1,000 ARIMA models directly in SQL, specifying the time_series_data_col, time_series_id_col, and holiday_region parameters. ARIMA_PLUS automatically handles seasonality, trend, and holiday effects.",
+      "Use Cloud Dataflow to preprocess the time series data and feed it into a custom LSTM model trained on Vertex AI Custom Training.",
+      "Use Looker Studio's built-in forecast feature, which directly queries BigQuery to produce 30-day projections."
+    ],
+    "answer": 1,
+    "explanation": "BigQuery ML's ARIMA_PLUS model type is specifically designed for time series forecasting directly in BigQuery using SQL. It supports multiple time series in a single model (using time_series_id_col to handle all 1,000 SKUs), automatically performs seasonality decomposition, holiday adjustments (via holiday_region), and trend modeling. SQL analysts can train, evaluate (ML.EVALUATE), and generate forecasts (ML.FORECAST) entirely in BigQuery without Python — matching the team's skill profile and eliminating data egress."
+  },
+  {
+    "id": 63,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You are building a binary classifier to predict industrial equipment failure before it occurs. Missing a true failure costs $500,000 in catastrophic damage (False Negative). Triggering an unnecessary maintenance alert costs $2,000 (False Positive). The business team asks which metric to optimize during model training and threshold selection. What should you recommend?",
+    "options": [
+      "Optimize for Accuracy, as it captures overall correct predictions and ensures the model works well across both classes.",
+      "Optimize for Precision, because the cost of false positives ($2,000) means you should minimize unnecessary alerts.",
+      "Optimize for Recall (minimize False Negatives), because missing a true failure is 250x more costly than a false alarm. Set a low decision threshold to flag more potential failures, accepting more false positives.",
+      "Optimize for F1-Score, because it balances precision and recall and is appropriate when class costs are unequal."
+    ],
+    "answer": 2,
+    "explanation": "When misclassification costs are highly asymmetric, you must optimize for the metric that minimizes the expensive error type. Here, a False Negative costs $500K vs $2K for a False Positive — a 250:1 ratio. Recall (True Positives / (True Positives + False Negatives)) directly minimizes missed failures. In practice: lower the decision threshold below 0.5 to increase Recall at the expense of Precision. F1-Score implicitly treats FP and FN costs as equal, which is incorrect here. Accuracy is misleading for imbalanced failure datasets. The cost-weighted objective to minimize is (FN_cost × FNR + FP_cost × FPR), but maximizing Recall is the correct directional proxy."
   }
 ]

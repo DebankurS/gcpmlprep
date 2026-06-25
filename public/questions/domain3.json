@@ -95,7 +95,7 @@
     "domain": "Domain 3: Model Development",
     "question": "You are training a TensorFlow model on Vertex AI Custom Training with 4 GPU worker nodes. You want synchronous data-parallel training where each worker processes a shard of each batch and gradients are aggregated via AllReduce. Which TF distribution strategy is correct?",
     "options": [
-      "Use `tf.distribute.MirroredStrategy` \u2014 it handles multi-GPU training across multiple machines.",
+      "Use `tf.distribute.MirroredStrategy` — it handles multi-GPU training across multiple machines.",
       "Use `tf.distribute.MultiWorkerMirroredStrategy`: distributes training across multiple machines, each with one or more GPUs. Each worker processes a data shard, computes local gradients, and gradients are synchronized across all workers using AllReduce (CollectiveCommunication). `MirroredStrategy` is for single-machine multi-GPU only.",
       "Use `tf.distribute.ParameterServerStrategy` for synchronous gradient updates with small models.",
       "Use `tf.data.experimental.distribute_datasets_from_function` directly without a strategy wrapper."
@@ -111,9 +111,48 @@
       "Store all metrics in BigQuery and visualize with Looker Studio.",
       "**Vertex AI Experiments**: GCP's equivalent of MLflow tracking. Initialize with `aiplatform.init(experiment='my-exp')` and log with `aiplatform.log_params()`, `aiplatform.log_metrics()`. All runs appear in the Vertex AI Experiments dashboard for side-by-side comparison. Integrates natively with Vertex AI Pipelines and Custom Training.",
       "Use Cloud Logging with structured JSON logs and query with Log Analytics.",
-      "Use Vertex AI Model Registry \u2014 it automatically tracks hyperparameters alongside model versions."
+      "Use Vertex AI Model Registry — it automatically tracks hyperparameters alongside model versions."
     ],
     "answer": 1,
     "explanation": "Vertex AI Experiments provides experiment tracking analogous to MLflow: runs, parameters, metrics, and artifact logging with a web dashboard for comparison. It integrates with Vertex AI Pipelines (each pipeline run is automatically an experiment run) and Custom Training jobs. For teams using non-Vertex training (e.g., local or GKE), the `google-cloud-aiplatform` SDK can be called from anywhere to log to Vertex AI Experiments."
+  },
+  {
+    "id": 67,
+    "domain": "Domain 3: Model Development",
+    "question": "You are training a large Transformer-based language model (7 billion parameters) on 1 trillion tokens. The training loop consists almost entirely of dense matrix operations (attention, feed-forward layers) with no sparse computation. You have a fixed compute budget. Should you prefer Cloud TPU v5e pods or NVIDIA A100 GPUs for this workload, and why?",
+    "options": [
+      "Use NVIDIA A100 GPUs: they support all ML frameworks natively without XLA compilation and are always faster than TPUs for large model training.",
+      "Use Cloud TPU v5e pods: TPUs are Google's custom ASICs purpose-built for dense matrix multiplication. They offer higher throughput (FLOPS/dollar) for large Transformer training workloads and provide high-bandwidth chip-to-chip interconnects via a 2D torus topology, reducing cross-chip communication overhead compared to GPU clusters.",
+      "Use Cloud TPU for inference only; GPUs are mandatory for training large language models.",
+      "Split the model: use GPU nodes for embedding layers and TPU nodes for attention layers, routing tensors between them."
+    ],
+    "answer": 1,
+    "explanation": "TPUs (Tensor Processing Units) are Google's custom ASICs built for dense matrix multiply operations that dominate Transformer training. For workloads with predominantly matrix operations and no dynamic control flow or sparse computation, TPUs offer better FLOPS/dollar than GPUs. TPU v5e pods use a 2D torus topology for high-bandwidth inter-chip communication without separate networking. The caveat: model code must be XLA-compatible (JAX natively, TensorFlow with XLA, or PyTorch via torch_xla). GPUs remain preferable for workloads with custom CUDA kernels, irregular memory access patterns, or dynamic control flow that XLA cannot optimize."
+  },
+  {
+    "id": 68,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team wants to evaluate and quickly deploy multiple open-source foundation models (Llama 3, Gemma 2, Mistral) for an internal knowledge assistant, comparing their outputs before selecting one to fine-tune. You don't want to manually download model weights, build serving containers, or manage GPU infrastructure. Which GCP feature provides this capability?",
+    "options": [
+      "Store model weights in Cloud Storage and write custom Vertex AI Prediction containers for each model to evaluate them.",
+      "Use Hugging Face Hub directly from a Vertex AI Workbench notebook — Vertex AI has no native catalog for open-source foundation models.",
+      "Use Vertex AI Model Garden: a curated catalog of first-party (Gemini, Gemma) and partner (Llama, Mistral) foundation models. Deploy models to Vertex AI Endpoints with one click or one API call, and use provided notebooks for evaluation and fine-tuning — no container management or weight downloads required.",
+      "Use Cloud Run with GPU support to deploy container images of each model and route traffic with a Cloud Load Balancer."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Model Garden is a model hub within Vertex AI that provides access to Google's first-party models (Gemini, Gemma, Imagen, Codey) and curated partner models (Meta Llama, Mistral, and others). For each model, Model Garden provides: one-click deployment to a Vertex AI Endpoint, fine-tuning pipeline templates, and Colab notebooks for evaluation. It eliminates infrastructure setup for model exploration — no container building or weight management required. This is the correct answer for teams needing to explore and compare multiple foundation models on GCP efficiently."
+  },
+  {
+    "id": 69,
+    "domain": "Domain 3: Model Development",
+    "question": "You are training a deep neural network on Vertex AI Custom Training. Validation loss stops improving after epoch 15, but training continues to epoch 100, wasting compute and causing overfitting. What technique should you implement to automatically stop training at the optimal point?",
+    "options": [
+      "Apply L2 regularization with a high lambda to prevent the model from continuing to learn after epoch 15.",
+      "Hard-code a fixed training budget of 15 epochs based on past experience with this model type.",
+      "Implement Early Stopping: monitor validation loss and halt training when it fails to improve by more than `min_delta` for `patience` consecutive epochs. In Keras: `EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)`. Combine with model checkpointing to GCS to save the best weights.",
+      "Switch to tf.distribute.MirroredStrategy — it distributes the training workload and reduces the number of epochs needed to converge."
+    ],
+    "answer": 2,
+    "explanation": "Early Stopping automatically halts training when validation performance plateaus, preventing overfitting and wasted compute. Key parameters: `monitor='val_loss'` (metric to watch), `patience=N` (epochs to wait without improvement), `restore_best_weights=True` (reload the checkpoint from the best epoch when training stops). On Vertex AI Custom Training, combine with `ModelCheckpoint(filepath='gs://bucket/checkpoints/', save_best_only=True)` so the best weights are persisted to GCS. Hard-coding epochs is brittle and doesn't adapt to dataset or model changes. Regularization reduces overfitting severity but does not stop unnecessary training."
   }
 ]

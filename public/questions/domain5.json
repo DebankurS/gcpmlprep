@@ -70,9 +70,9 @@
     "question": "You deployed a custom tabular model to Vertex AI. Legal requires per-prediction feature attributions (which features drove this specific decision?). How do you enable SHAP-based explanations on Vertex AI?",
     "options": [
       "Log SHAP values manually in the serving container and store them in BigQuery alongside predictions.",
-      "Enable **Vertex AI Explainability** when deploying: configure `ExplanationParameters` with `SampledShapleyAttribution` (or `IntegratedGradientsAttribution` for neural nets). Call `endpoint.explain()` instead of `endpoint.predict()` \u2014 the response includes feature attributions alongside predictions. Attribution values show each feature's contribution relative to the baseline.",
+      "Enable **Vertex AI Explainability** when deploying: configure `ExplanationParameters` with `SampledShapleyAttribution` (or `IntegratedGradientsAttribution` for neural nets). Call `endpoint.explain()` instead of `endpoint.predict()` — the response includes feature attributions alongside predictions. Attribution values show each feature's contribution relative to the baseline.",
       "Use the Vertex AI What-If Tool to generate SHAP values post-deployment.",
-      "Set `explain=True` in the training job config \u2014 Vertex AI generates explanations automatically at serving time."
+      "Set `explain=True` in the training job config — Vertex AI generates explanations automatically at serving time."
     ],
     "answer": 1,
     "explanation": "Vertex AI Explainability is configured at model deployment time via `ExplanationMetadata` (feature names, input/output tensor names) and `ExplanationParameters` (SHAP via `SampledShapleyAttribution`, or Integrated Gradients for neural networks). The `explain()` API call returns a standard `Prediction` plus `Attribution` objects for each feature. For tabular models, Sampled Shapley provides consistent feature attributions; for image/text models, Integrated Gradients provides pixel/token-level attributions."
@@ -101,7 +101,7 @@
       "Store SSNs in a separate private BigQuery table and train without joining it."
     ],
     "answer": 1,
-    "explanation": "Data minimization (GDPR Article 5, NIST privacy framework): don't retain or process PII that isn't needed. Cloud DLP provides automated PII detection and de-identification with multiple techniques: tokenization, masking, bucketing, date shifting. For BigQuery, the cleanest approach is a BigQuery Authorized View that projects only the non-PII columns \u2014 training jobs access the view and never see the raw PII, with no additional tooling required. DLP scanning can also be run proactively to find PII in datasets before they're used for training."
+    "explanation": "Data minimization (GDPR Article 5, NIST privacy framework): don't retain or process PII that isn't needed. Cloud DLP provides automated PII detection and de-identification with multiple techniques: tokenization, masking, bucketing, date shifting. For BigQuery, the cleanest approach is a BigQuery Authorized View that projects only the non-PII columns — training jobs access the view and never see the raw PII, with no additional tooling required. DLP scanning can also be run proactively to find PII in datasets before they're used for training."
   },
   {
     "id": 55,
@@ -110,10 +110,49 @@
     "options": [
       "Write a README in the model's Cloud Storage bucket describing training parameters.",
       "Produce a **Model Card**: a transparency document covering model details, intended/excluded use cases, performance metrics by slice (fairness evaluation), training data summary, ethical considerations, and limitations. Generate using the `model-card-toolkit` Python library and store alongside the model in Vertex AI Model Registry as documentation artifacts.",
-      "Publish a Vertex AI Experiment comparing model versions \u2014 this serves as the model card.",
+      "Publish a Vertex AI Experiment comparing model versions — this serves as the model card.",
       "Submit the model training configuration to the GCP Trusted Cloud Initiative for documentation."
     ],
     "answer": 1,
     "explanation": "Model Cards (Mitchell et al., 2019, Google AI) are the industry-standard format for ML model documentation and responsible AI transparency. The `model-card-toolkit` library (`pip install model-card-toolkit`) provides a Python API to programmatically populate and render Model Cards as HTML or JSON. They are particularly important for models used in high-stakes decisions (credit, healthcare, hiring) and are increasingly required by regulation (EU AI Act) and corporate governance policies."
+  },
+  {
+    "id": 73,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "Your production loan default prediction model's input feature distributions are stable — Vertex AI Model Monitoring reports no training-serving skew or feature drift. However, comparing monthly model predictions against actual loan outcomes (ground-truth labels) shows accuracy has dropped from 92% to 78% over 6 months. What type of drift is occurring, and what does detecting it require?",
+    "options": [
+      "Feature drift: the model's input features have shifted. Vertex AI Model Monitoring detects this automatically without ground-truth labels.",
+      "Data quality degradation: missing values or format changes in the input pipeline are silently corrupting feature values.",
+      "Concept drift: the statistical relationship between features and the target label (P(Y|X)) has changed — for example, macroeconomic conditions altered what features predict loan default. Unlike feature drift, concept drift requires ground-truth labels (actual outcomes) to detect, because it is invisible from input feature distributions alone.",
+      "Model staleness: re-deploying the same model weights will restore accuracy without retraining."
+    ],
+    "answer": 2,
+    "explanation": "There are two distinct types of distribution shift: (1) Covariate/data drift: P(X) changes (input feature distributions shift) — detectable from inputs alone, without labels. Vertex AI Model Monitoring handles this. (2) Concept drift: P(Y|X) changes (the relationship between features and outcomes shifts) — detectable ONLY by comparing predictions to actual outcomes. In the loan example, the same features now predict different default probabilities because macroeconomic conditions changed. Detecting concept drift requires a label pipeline that feeds actual outcomes back to your evaluation system — typically a Cloud Scheduler job that joins predictions to outcomes (e.g., final loan status) after they're realized."
+  },
+  {
+    "id": 74,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You have deployed a deep neural network (3 hidden layers, ReLU activations) to Vertex AI for credit risk scoring. EU AI Act regulations require per-prediction feature attribution explanations. Which Vertex AI Explainable AI method should you configure, and why is it specifically suited for neural networks?",
+    "options": [
+      "Sampled Shapley: it is the recommended method for all model types including neural networks, and it does not require differentiability.",
+      "XRAI: it produces region-based salience maps from gradients and is optimal for tabular neural networks.",
+      "Integrated Gradients: a gradient-based method that computes the integral of model gradients from a baseline (e.g., all-zeros input) to the actual input. It requires the model to be differentiable — which neural networks are — and satisfies the sensitivity and implementation invariance axioms. More efficient than sampling-based Shapley for deep models with continuous inputs.",
+      "Use SHAP KernelExplainer in a custom serving container — Vertex AI Explainability only supports scikit-learn tabular models natively."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Explainability supports three methods: (1) Integrated Gradients — for differentiable models (TensorFlow/JAX neural networks). Computes attributions by integrating gradients from a baseline to the actual input; efficient and theoretically grounded for continuous tabular inputs. Configure via `IntegratedGradientsAttribution(num_integral_steps=50)`. (2) Sampled Shapley — for non-differentiable models (scikit-learn, XGBoost). Estimates Shapley values by sampling feature coalitions. (3) XRAI — for image models specifically. For a deep neural network on tabular data, Integrated Gradients is the correct choice: it leverages differentiability for efficiency and satisfies completeness and sensitivity axioms required for regulatory explainability."
+  },
+  {
+    "id": 75,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "A resume screening model shows the following audit results: Group A and Group B receive interview invitations at similar overall rates (38% vs 40%), appearing to satisfy Demographic Parity. However, among candidates who were independently assessed as genuinely qualified, the model correctly identifies 90% of qualified Group A candidates but only 65% of qualified Group B candidates. Which fairness criterion is violated?",
+    "options": [
+      "Demographic Parity is violated because the 2-percentage-point gap in positive rates is statistically significant.",
+      "Accuracy Parity is violated because overall accuracy differs between groups.",
+      "Equal Opportunity is violated: Equal Opportunity requires that the True Positive Rate (TPR) — the probability that a truly qualified candidate receives a positive decision — be equal across groups. Here, TPR for Group A is 90% vs 65% for Group B, indicating the model systematically fails to surface qualified candidates from Group B.",
+      "Predictive Parity is violated because the model's precision differs between demographic groups."
+    ],
+    "answer": 2,
+    "explanation": "Fairness metrics measure distinct properties: (1) Demographic Parity: P(Ŷ=1 | Group) equal — equal positive prediction rates regardless of actual qualification. (2) Equal Opportunity (Hardt et al., 2016): P(Ŷ=1 | Y=1, Group) equal — equal True Positive Rates among truly qualified candidates. (3) Predictive Parity: P(Y=1 | Ŷ=1, Group) equal — equal precision. Here, similar overall rates (38% vs 40%) mask a significant TPR disparity (90% vs 65%), violating Equal Opportunity. This is a classic example where Demographic Parity can be satisfied simultaneously with an Equal Opportunity violation — demonstrating why multiple fairness metrics must be evaluated. Use the Vertex AI What-If Tool or TFMA with SlicingSpec to compute per-group TPR/FNR."
   }
 ]
