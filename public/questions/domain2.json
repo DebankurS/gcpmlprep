@@ -102,5 +102,44 @@
     ],
     "answer": 1,
     "explanation": "The TFX data validation trio: (1) StatisticsGen computes feature statistics (mean, std, quantiles, top values, missing rate) using Apache Beam \u2014 scalable to large datasets; (2) SchemaGen infers or loads a schema (TFDV Schema proto) defining expected feature types, value sets, and bounds; (3) ExampleValidator compares new statistics to the schema and flags anomalies (new values, null spikes, distribution shift vs. baseline). This is the standard GCP MLOps data quality gate."
+  },
+  {
+    "id": 64,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are training a model to predict stock prices using 3 years of daily market data. Your current 80/10/10 train/validation/test split uses random sampling. The model shows high AUC on validation but fails to beat a simple baseline in production. What is most likely wrong?",
+    "options": [
+      "The model is overfitting; add dropout layers and L2 regularization to reduce variance.",
+      "Random sampling causes temporal data leakage: future rows appear in the training set while past rows appear in validation. Fix by using a temporal split \u2014 train on the earliest 2.4 years, validate on the next 0.3 years, test on the most recent 0.3 years.",
+      "The validation set is too small at 10%; increase it to 30% to get a more stable AUC estimate.",
+      "Use stratified k-fold cross-validation with 10 folds to get a more robust performance estimate."
+    ],
+    "answer": 1,
+    "explanation": "For time-series data, random sampling allows future data points to leak into the training set (e.g., a row from month 36 trains the model, while a row from month 12 is held out for validation). The model effectively 'sees the future' during training, inflating validation metrics. In production the model always predicts the future from the past \u2014 the exact scenario the validation set no longer represents. Temporal split mirrors production conditions: train on [t0, t_split1], validate on [t_split1, t_split2], test on [t_split2, t_end]. k-fold with random shuffling has the same leakage problem for time-series and should not be used."
+  },
+  {
+    "id": 65,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are building a fraud detection model in TensorFlow. One input feature is `merchant_id` with 500,000 unique values. One-hot encoding produces a 500,000-dimensional sparse vector that causes GPU memory exhaustion during training. What is the recommended approach for this high-cardinality categorical feature?",
+    "options": [
+      "Drop `merchant_id` entirely \u2014 features with more than 10,000 unique values are too sparse to be useful.",
+      "Use frequency encoding: replace each `merchant_id` with its occurrence count in the training set.",
+      "Use a learned embedding layer (`tf.keras.layers.Embedding(input_dim=500001, output_dim=64)`): each merchant ID maps to a dense 64-dimensional vector trained jointly with the model, capturing semantic relationships while reducing dimensionality from 500,000 to 64 per example.",
+      "Apply one-hot encoding then PCA to reduce to 128 dimensions before feeding into the model."
+    ],
+    "answer": 2,
+    "explanation": "Embedding layers are the standard solution for high-cardinality categorical features. An `Embedding(input_dim=vocab_size, output_dim=embedding_dim)` layer maps each integer ID to a dense low-dimensional vector learned during training. Advantages over one-hot + PCA: (1) memory-efficient \u2014 500K\u00d764 trainable parameters vs 500K-dim input per sample; (2) captures semantic relationships \u2014 similar merchants learn similar embeddings; (3) handles out-of-vocabulary IDs via a reserved embedding; (4) jointly optimized with the prediction task. Vertex AI Feature Store supports storing pre-computed embeddings for reuse across models."
+  },
+  {
+    "id": 66,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your fraud detection model requires a real-time feature: `user_transactions_last_5_minutes`. Transaction events arrive on Cloud Pub/Sub at thousands per second. The feature must be available to the online prediction endpoint within 100ms. Which architecture correctly computes and serves this streaming feature?",
+    "options": [
+      "Run a cron job every 5 minutes to query BigQuery and refresh aggregated counts for all users in Cloud Memorystore.",
+      "Configure Vertex AI Feature Store to ingest Pub/Sub events and compute windowed aggregations automatically.",
+      "Use Cloud Dataflow (Apache Beam) to consume Pub/Sub events and compute 5-minute sliding window aggregations, writing results to Cloud Bigtable. The prediction endpoint reads from Bigtable at inference time for single-digit-millisecond feature lookup.",
+      "Use Cloud Dataproc Streaming with Spark Structured Streaming to compute aggregations and store in Cloud SQL."
+    ],
+    "answer": 2,
+    "explanation": "The canonical GCP real-time feature pipeline: (1) Cloud Pub/Sub \u2014 durable, high-throughput event ingestion; (2) Cloud Dataflow with Apache Beam \u2014 computes windowed aggregations (SlidingWindows, session windows) with watermark-based late event handling, scales elastically to thousands of events/second; (3) Cloud Bigtable \u2014 single-digit millisecond key-value reads, ideal for serving precomputed features to online endpoints. The prediction endpoint performs a Bigtable lookup by `user_id` to retrieve the precomputed 5-minute transaction count. Vertex AI Feature Store is designed for batch ingestion and offline/online serving of pre-computed features, not real-time streaming aggregation. A 5-minute cron job cannot provide feature freshness within 100ms."
   }
 ]

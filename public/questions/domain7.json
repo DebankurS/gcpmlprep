@@ -89,5 +89,44 @@
     ],
     "answer": 1,
     "explanation": "Gemini function calling (tool use): define each callable function as a `FunctionDeclaration` with its name, description, and typed parameter schema (using `Schema` objects). Register declarations in a `Tool` object and pass to `generate_content()`. When Gemini decides to call a function, it returns `content.parts[0].function_call` \u2014 your application executes the real function logic and passes the result back as a `FunctionResponse` in the next turn. Gemini uses the result to generate the final response."
+  },
+  {
+    "id": 79,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "Your team is building a Python customer support agent using the Vertex AI Agent Development Kit (ADK). The agent must use Gemini to plan actions, call a `lookup_order(order_id: str) -> dict` tool, and maintain turn-by-turn conversation state. What is the correct ADK pattern for defining and running this agent?",
+    "options": [
+      "Instantiate `vertexai.generative_models.GenerativeModel` directly \u2014 the ADK is a deprecated alias for this same API.",
+      "Define the tool as a Python function decorated with `@tool` (ADK auto-generates the schema from type hints and docstrings), create an `Agent(model='gemini-2.0-flash', tools=[lookup_order], instruction='...')`, manage session state with `InMemorySessionService` or `VertexAiSessionService`, and run turns with `runner.run_async(session_id, message)`. ADK handles the full reasoning loop automatically.",
+      "Define tools as OpenAPI YAML specifications, upload them to Vertex AI Agent Studio, and execute via the Agent Studio UI.",
+      "Write a Cloud Run service implementing the tool logic and register it as a Vertex AI Extension with an OpenAPI spec."
+    ],
+    "answer": 1,
+    "explanation": "The Vertex AI Agent Development Kit (ADK) provides a Python framework for building custom agents: (1) `@tool` decorator wraps any Python function as an ADK tool \u2014 ADK auto-generates the JSON schema from type hints and the docstring for Gemini's function calling; (2) `Agent(model=..., tools=[...], instruction=...)` defines the agent's model, available tools, and system instructions; (3) `InMemorySessionService` (for local development) or `VertexAiSessionService` (for production on Agent Engine) manages turn-by-turn conversation history; (4) `Runner.run_async(session_id, new_message)` executes one agent turn: model call \u2192 tool dispatch \u2192 result injection \u2192 repeat until final response. The `vertexai.generative_models` module was removed on June 24, 2026 and must not be used."
+  },
+  {
+    "id": 80,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are debugging a Vertex AI ADK agent built with Gemini that answers 'What is the total value of orders for customer C-123 in the last 30 days?' using a `get_orders(customer_id, days)` tool. The agent sometimes skips the tool call and returns a hallucinated number. Which reasoning pattern does ADK/Gemini use for this task, and what does the event stream show when it works correctly?",
+    "options": [
+      "The agent uses Chain-of-Thought (CoT) prompting to reason about the answer entirely in text without calling any tools.",
+      "The agent uses the ReAct pattern (Reasoning + Acting): (1) Thought \u2014 Gemini generates reasoning about what information is needed; (2) Action \u2014 Gemini emits a FunctionCall for `get_orders(customer_id='C-123', days=30)`; (3) Observation \u2014 ADK executes the function and returns a FunctionResponse with the order data; (4) Thought \u2014 Gemini reasons over the data to compute the total; (5) Final Answer \u2014 Gemini returns the computed total in text. ADK's event stream exposes each step.",
+      "The agent uses Monte Carlo Tree Search to evaluate all possible action sequences and selects the one with highest estimated reward.",
+      "The agent uses a retrieval-augmented pattern, fetching order data from Vector Search embeddings rather than calling the structured tool."
+    ],
+    "answer": 1,
+    "explanation": "ReAct (Yao et al., 2022 \u2014 Reasoning + Acting) is the foundational pattern for tool-using agents: the model interleaves internal reasoning (Thought) with external tool invocations (Action) and processes the results (Observation) before continuing. In ADK with Gemini: Gemini generates a FunctionCall part (the Action), ADK dispatches the call to the actual Python function, wraps the return value in a FunctionResponse (the Observation), and appends it to the conversation for the next model turn. This loop repeats until Gemini generates a final text response with no tool calls. The ADK event stream (yielded by `runner.run_async()`) exposes `EventType.TOOL_CALL` and `EventType.TOOL_RESULT` events \u2014 if those events are absent in the stream, the model skipped the tool. Common fix: strengthen the system instruction to explicitly require using the `get_orders` tool."
+  },
+  {
+    "id": 81,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are building a travel booking system using ADK with a `flight_agent` specialized in flight search and a `hotel_agent` specialized in hotel search. A `travel_coordinator` agent receives user requests like 'Book a trip to Paris' and delegates to the specialists. How do you implement this multi-agent orchestration pattern in ADK?",
+    "options": [
+      "Deploy each specialist agent as a separate Vertex AI Agent Engine endpoint and use a Cloud Load Balancer to route coordinator requests to the correct specialist.",
+      "Define `flight_agent` and `hotel_agent` as `Agent` objects with their respective tools and instructions, then register them as `sub_agents=[flight_agent, hotel_agent]` in the `travel_coordinator` Agent constructor. ADK handles delegation: the coordinator uses Gemini to decompose the task and invoke sub-agents, which return results to the coordinator for synthesis.",
+      "Combine all flight and hotel tools into a single monolithic Agent \u2014 sub-agent patterns add unnecessary complexity for this use case.",
+      "Use the A2A (Agent-to-Agent) protocol to send HTTP requests from the coordinator to independently deployed specialist agents hosted on separate Vertex AI Agent Engine instances."
+    ],
+    "answer": 1,
+    "explanation": "ADK supports hierarchical multi-agent systems natively via the `sub_agents` parameter: (1) Define specialist agents as independent `Agent` objects, each with their own tools, model, and focused system instructions; (2) Register them in the coordinator: `travel_coordinator = Agent(sub_agents=[flight_agent, hotel_agent], instruction='Decompose travel requests...')`. ADK handles the delegation mechanics \u2014 the coordinator's Gemini model decides which sub-agent to invoke, and ADK routes the subtask and aggregates the response. A2A protocol (option D) is designed for cross-organization or cross-platform agent coordination between independently deployed agents with different owners \u2014 it adds significant operational complexity compared to ADK's built-in sub-agent delegation within the same codebase."
   }
 ]

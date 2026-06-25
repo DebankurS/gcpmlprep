@@ -128,5 +128,44 @@
     ],
     "answer": 1,
     "explanation": "Vertex AI Metadata Store is backed by ML Metadata (MLMD), the same open-source library used by TFX. Every Vertex AI Pipeline step automatically records: input artifact URIs and types, output artifact URIs and types, execution parameters, and the execution-to-artifact edges that form the lineage graph. After a pipeline failure, you can inspect the partial lineage to see exactly what ran successfully before the failure, which artifacts were produced, and what metrics were logged."
+  },
+  {
+    "id": 70,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your team wants to automate the ML lifecycle: whenever code is merged to the main branch in Cloud Source Repositories, a new training container should be built, pushed to Artifact Registry, and a Vertex AI Pipeline run should be triggered automatically. Which CI/CD approach is most appropriate?",
+    "options": [
+      "Configure a Cloud Scheduler cron job to poll Cloud Source Repositories for new commits every hour and trigger training.",
+      "Use Cloud Composer (Apache Airflow) with a GitSensor operator to detect new commits and trigger a training DAG.",
+      "Use Cloud Build with a push trigger on the main branch: build steps (1) build and push the Docker training container to Artifact Registry, (2) submit a Vertex AI Pipeline run via the `gcloud ai pipelines create-run` command or Python SDK. Cloud Build triggers on merge events natively.",
+      "Write a Cloud Run service that implements a webhook endpoint, register it as a Cloud Source Repositories push notification target, and trigger training from the webhook handler."
+    ],
+    "answer": 2,
+    "explanation": "Cloud Build is GCP's managed CI/CD service with native triggers on Cloud Source Repositories (and GitHub/Bitbucket) push events. A `cloudbuild.yaml` file defines sequential build steps: (1) `docker build` + `docker push` to Artifact Registry for the updated training container; (2) Python SDK or `gcloud` command to submit the Vertex AI Pipeline job. This follows the standard GCP MLOps CI/CD pattern where Cloud Build handles the code-to-container layer and Vertex AI Pipelines handles the ML workflow layer. Cloud Scheduler cannot detect commits. Cloud Composer adds unnecessary Airflow complexity for a simple code-push trigger."
+  },
+  {
+    "id": 71,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your Vertex AI Pipeline trains a model and evaluates it. You want to automatically deploy to the production endpoint ONLY when (1) new model AUC > 0.90 AND (2) new model AUC exceeds the currently deployed model. Otherwise the pipeline should fail with an alert. How do you implement this conditional deployment gate?",
+    "options": [
+      "Add a Cloud Function that polls the Vertex AI Pipelines run for completion, reads evaluation metrics from GCS, and calls the Vertex AI SDK to deploy if thresholds are met.",
+      "Use Vertex AI Model Monitoring with an accuracy threshold alert to block deployments that do not meet the threshold.",
+      "Implement a custom KFP pipeline component that reads the evaluation metrics artifact and uses `dsl.Condition` to conditionally execute the deployment component only when both threshold conditions are satisfied; the pipeline fails and triggers a Cloud Monitoring alert if the condition is false.",
+      "Configure Vertex AI Vizier to compare model versions and automatically select and deploy the best performing one."
+    ],
+    "answer": 2,
+    "explanation": "In Kubeflow Pipelines (KFP) on Vertex AI, `dsl.Condition` enables conditional component execution based on pipeline artifact values at runtime. The evaluation component outputs metrics (AUC) as typed pipeline artifacts. A downstream `dsl.Condition(new_auc > 0.90 and new_auc > current_auc)` gate wraps the deployment component \u2014 it executes only when the condition is true. The current production model's AUC is fetched from Vertex AI Model Registry at pipeline runtime. When the condition is false, the deployment step is skipped and the pipeline can be configured to raise an error that triggers a Cloud Monitoring alert. This is the standard MLOps model evaluation gate pattern."
+  },
+  {
+    "id": 72,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "After routing 100% of traffic to a newly deployed model v2, you receive alerts indicating a higher-than-expected prediction error rate. You need to immediately roll back to v1 with zero downtime. What is the fastest rollback procedure on Vertex AI?",
+    "options": [
+      "Undeploy v2 from the endpoint and redeploy v1 from Model Registry. Redeployment takes 2-3 minutes and causes a gap in serving.",
+      "Since v1 remains deployed on the same endpoint at 0% traffic, update the endpoint's traffic split to 100% v1 / 0% v2. This is a metadata-only operation that takes effect within seconds with no endpoint restart or downtime.",
+      "Create a new Vertex AI Endpoint, deploy v1 to it, and update the client application URL to the new endpoint.",
+      "Use the auto-rollback feature in Vertex AI Model Registry to restore the previous model version to the endpoint."
+    ],
+    "answer": 1,
+    "explanation": "The canary deployment pattern keeps both model versions deployed on the same endpoint throughout the rollout \u2014 v1 starts at 100%, decreases as v2 ramps up. Traffic split updates are metadata operations (not redeployments): calling `endpoint.update_deployed_model_traffic_percentage()` reroutes traffic within seconds with no endpoint restart, no downtime, and no client-side changes. This is why the correct canary pattern keeps the old model deployed at 0% rather than undeploying it after reaching 100% v2 \u2014 instant rollback is the payoff. Redeploying v1 from scratch (option A) incurs a 2-5 minute provisioning delay during which the endpoint may be degraded."
   }
 ]

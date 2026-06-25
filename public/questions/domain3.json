@@ -115,5 +115,44 @@
     ],
     "answer": 1,
     "explanation": "Vertex AI Experiments provides experiment tracking analogous to MLflow: runs, parameters, metrics, and artifact logging with a web dashboard for comparison. It integrates with Vertex AI Pipelines (each pipeline run is automatically an experiment run) and Custom Training jobs. For teams using non-Vertex training (e.g., local or GKE), the `google-cloud-aiplatform` SDK can be called from anywhere to log to Vertex AI Experiments."
+  },
+  {
+    "id": 67,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team needs to experiment with Llama 3.1 70B for a domain-specific NLP classification task. You want to use a pre-trained open-source checkpoint without building custom serving infrastructure, and make it available via a Vertex AI Endpoint. Which GCP service provides the fastest path?",
+    "options": [
+      "Download the Llama weights from Hugging Face to Cloud Storage and write a custom Vertex AI Custom Training job to optimize and export the model before deploying to an endpoint.",
+      "Push the Llama model weights to Artifact Registry as a Docker image and deploy via Cloud Run with GPU support.",
+      "Use Vertex AI Model Garden: find the Llama 3.1 70B model card, click Deploy, and Model Garden provisions the GPU serving infrastructure, configures the serving container, and creates a Vertex AI Endpoint automatically.",
+      "Use BigQuery ML `ML.GENERATE_TEXT` with a custom model checkpoint path from Cloud Storage."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Model Garden is GCP's curated catalog of open-source and Google-proprietary foundation models including Llama, Gemma, Mistral, and Falcon families. One-click Deploy from Model Garden handles: optimal GPU type and count selection for the model size, serving container configuration, endpoint creation, and health checks. The deployed model appears as a standard Vertex AI Endpoint with the same IAM, monitoring, and autoscaling controls as custom-trained models. This eliminates weeks of infrastructure engineering for large model deployment. Custom container approaches require significant knowledge of serving frameworks (vLLM, TGI) and GPU configuration."
+  },
+  {
+    "id": 68,
+    "domain": "Domain 3: Model Development",
+    "question": "You have a high-accuracy BERT-based intent classifier (340M parameters, 800ms inference latency) that violates your 200ms SLA. Training a smaller architecture from scratch achieves only 81% accuracy vs. BERT's 94%. Which technique can produce a faster, smaller model while preserving more of BERT's accuracy?",
+    "options": [
+      "Apply INT8 post-training quantization using TensorFlow Lite \u2014 this reduces model size 4x and typically halves latency.",
+      "Apply L1 regularization during fine-tuning to zero out redundant weights, then prune zero-valued parameters from the model.",
+      "Use knowledge distillation: train a small 'student' model (e.g., 2-layer transformer) to match the large 'teacher' BERT model's output probability distributions (soft labels), providing richer training signal than hard labels alone and achieving near-teacher accuracy at a fraction of the size.",
+      "Use Vertex AI Model Optimization service to run Neural Architecture Search and find an automatically compressed model."
+    ],
+    "answer": 2,
+    "explanation": "Knowledge distillation (Hinton et al., 2015): a compact 'student' model is trained on the 'teacher' model's soft output probabilities rather than hard one-hot labels. Soft labels (e.g., 0.85 intent_A, 0.12 intent_B, 0.03 intent_C) encode inter-class similarity information that hard labels discard, providing richer supervision. Loss = \u03b1 \u00d7 cross_entropy(student, soft_teacher) + (1-\u03b1) \u00d7 cross_entropy(student, hard_labels). The student achieves significantly higher accuracy than training from hard labels alone. Implement in a Vertex AI Custom Training job: load the frozen teacher, generate soft labels, train the student. INT8 quantization (option A) is complementary and can be applied after distillation for further latency reduction."
+  },
+  {
+    "id": 69,
+    "domain": "Domain 3: Model Development",
+    "question": "You are building a 5-class manufacturing defect classifier (4 defect types + 'no defect'). The 'no defect' class makes up 95% of examples. You need a single scalar metric that evaluates performance equally across all 5 classes regardless of frequency, to use as the optimization objective during hyperparameter tuning. Which metric should you use?",
+    "options": [
+      "Overall accuracy: measures the fraction of all examples classified correctly across all classes.",
+      "Macro-averaged F1 score: compute F1 (harmonic mean of precision and recall) independently for each of the 5 classes, then average with equal weight regardless of class frequency, forcing the model to perform well on rare defect types.",
+      "Weighted-averaged F1 score: weight each class's F1 by its support (sample count), which balances accuracy for the dominant 'no defect' class.",
+      "AUC-ROC with one-vs-rest averaging: measures the ability to rank positive examples above negative examples for each class."
+    ],
+    "answer": 1,
+    "explanation": "With 95% majority class, accuracy is misleading: a model predicting 'no defect' always achieves 95% accuracy while missing every defect. Macro-averaged F1: compute F1 for each class independently (treating each as a binary problem), then average equally across all 5 classes. This means each defect type contributes equally to the metric regardless of sample count, directly incentivizing the model to learn rare defect patterns. Weighted F1 (option C) still allows the model to ignore rare classes by excelling on the majority class. Macro-F1 is the standard evaluation metric for imbalanced multi-class classification and is supported as an optimization objective in Vertex AI AutoML Tabular."
   }
 ]

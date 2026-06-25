@@ -76,5 +76,44 @@
     ],
     "answer": 1,
     "explanation": "Multiclass classification (softmax): exactly one class per sample \u2014 outputs are mutually exclusive probabilities summing to 1. Multi-label classification (sigmoid per output): each output is an independent binary prediction \u2014 any combination of labels is valid. For support tickets with co-occurring categories, sigmoid + binary_crossentropy is correct. Vertex AI AutoML Text supports multi-label classification natively."
+  },
+  {
+    "id": 61,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A logistics company has 50,000 labeled tabular records (5 features) and wants to predict delivery delay probability. They need a model in production within 3 weeks. They have 2 ML engineers but no time for custom model architecture research. Which approach minimizes time to a production-quality model?",
+    "options": [
+      "Train a custom TensorFlow neural network on Vertex AI Custom Training with TPU acceleration for maximum accuracy.",
+      "Use Vertex AI AutoML Tabular: it automatically handles feature preprocessing, model selection across multiple algorithm families, hyperparameter tuning, and produces a deployment-ready Vertex AI Endpoint without manual architecture decisions.",
+      "Use BigQuery ML ARIMA_PLUS model since delivery delay is a time-series problem.",
+      "Use a pre-trained Gemini model with few-shot prompting to predict delays from route description text."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI AutoML Tabular is designed for exactly this scenario: labeled tabular data, a short deadline, and no time for custom architecture research. AutoML tries an ensemble of models (gradient boosted trees, neural networks, linear) and selects the best combination automatically. It handles preprocessing, hyperparameter tuning, and produces a Vertex AI Endpoint ready for production. Custom TF training is better when you need specific architectural control or have proprietary modeling requirements that AutoML cannot fulfill. ARIMA_PLUS is for univariate time-series, not tabular multi-feature classification."
+  },
+  {
+    "id": 62,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You have a production customer churn model (v1) deployed on a Vertex AI Endpoint. A data scientist has trained a new version (v2) using a different feature set. You want to evaluate v2 on live traffic WITHOUT affecting users or business outcomes \u2014 v1 must continue serving all responses. Which deployment pattern achieves this?",
+    "options": [
+      "Configure the Vertex AI Endpoint traffic split at 95% v1 / 5% v2 so only a small fraction of users see v2 responses.",
+      "Deploy v2 in shadow mode: duplicate all production requests to v2 for inference in parallel, but serve only v1 responses to users. Log v2 predictions for offline comparison with no user impact.",
+      "Replace v1 with v2 in a blue-green swap, monitor error rates for 24 hours, and roll back if issues arise.",
+      "Run v2 as a batch prediction job against last week's production request logs and compare results offline."
+    ],
+    "answer": 1,
+    "explanation": "Shadow deployment (dark launch): production traffic is duplicated and sent to v2 for inference in parallel with v1, but only v1's response is returned to users. v2's predictions are logged for offline analysis. This reveals v2's real-world latency, error rates, and prediction quality without any user risk. Canary deployment (option A) routes a fraction of actual user requests to v2, exposing some users to potentially different (incorrect) predictions. Batch on historical data (option D) doesn't capture distribution shifts since the last training run and doesn't test serving performance."
+  },
+  {
+    "id": 63,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A data scientist needs to interactively explore 1 TB of tabular data stored in BigQuery, run iterative experiments using pandas and scikit-learn in Jupyter notebooks, and submit training jobs to Vertex AI. The environment must be fully managed (no kernel administration), support BigQuery connectors, and allow custom Python package installation. Which GCP service should they use?",
+    "options": [
+      "Cloud Shell with a Jupyter extension \u2014 available immediately with no setup.",
+      "A custom Compute Engine VM with Jupyter installed via a startup script and mounted persistent disk.",
+      "Vertex AI Workbench managed notebooks: fully managed JupyterLab with pre-installed GCP client libraries, a native BigQuery connector, persistent disk, and one-click submission of Vertex AI training jobs from the notebook environment.",
+      "Cloud Dataproc Jupyter Hub with a Spark-enabled kernel for distributed data processing."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Workbench provides fully managed JupyterLab instances purpose-built for the GCP ML workflow: (1) pre-installed google-cloud-aiplatform SDK and BigQuery connector for querying data directly in notebooks; (2) persistent disk that survives VM restarts; (3) custom Python package installation via pip; (4) one-click Vertex AI Custom Training job submission. Cloud Shell has no persistent storage and limited resources. Self-managed Compute Engine VMs require ongoing kernel and dependency management. Dataproc Jupyter is for Spark-distributed workloads, not iterative single-node ML experimentation."
   }
 ]

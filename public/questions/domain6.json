@@ -141,5 +141,44 @@
     ],
     "answer": 1,
     "explanation": "Soft prompt tuning (Lester et al., 2021): prepend P trainable continuous token embeddings (the 'soft prompt') to every input. Only these P\u00d7d parameters are updated by gradient descent \u2014 the LLM backbone is fully frozen. This makes training extremely parameter-efficient (often < 0.1% of model parameters). Trade-off: prompt tuning adapts style/tone well but cannot teach the model new structural behaviors (e.g., a rigid JSON schema) as effectively as SFT or LoRA, which actually modify the model weights."
+  },
+  {
+    "id": 76,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are building a semantic document search system over 10 million internal documents. You have generated 768-dimensional text embeddings for each document and need to find the top-10 most semantically similar documents to a query in under 50ms. Which Vertex AI service should you use for approximate nearest neighbor (ANN) search at this scale?",
+    "options": [
+      "Store embeddings in BigQuery as FLOAT64 arrays and use `ML.DISTANCE` with a full table scan per query \u2014 BigQuery's compute scale handles 10M rows efficiently.",
+      "Store embeddings in Vertex AI Feature Store and use the feature lookup API to retrieve nearest neighbors.",
+      "Use Vertex AI Vector Search (formerly Matching Engine): create an index from the document embeddings using the ScaNN algorithm, deploy it to an IndexEndpoint, and query with `find_neighbors(query_embedding, num_neighbors=10)` for sub-50ms ANN retrieval at billion-vector scale.",
+      "Store embeddings in Cloud Firestore and compute cosine similarity in application code using a linear scan."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Vector Search is GCP's managed approximate nearest neighbor (ANN) search service, built on Google's ScaNN (Scalable Nearest Neighbors) algorithm. It handles billion-scale embedding indexes with configurable precision/recall vs. latency tradeoffs. Workflow: (1) Batch-generate embeddings with the Vertex AI Embeddings API; (2) Create a Vector Search Index (TREE_AH for ANN or BRUTE_FORCE for exact search); (3) Deploy to an IndexEndpoint; (4) Query with `find_neighbors()`. ScaNN's sub-linear search achieves P99 latency well under 50ms even at 10M+ vectors. BigQuery full table scans (O(n)) cannot meet 50ms latency at this scale. Feature Store is for structured feature serving, not ANN search."
+  },
+  {
+    "id": 77,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are building a Gemini-powered Q&A assistant for an insurance company. The assistant must answer questions based ONLY on the company's internal policy documents stored in Cloud Storage, not on Gemini's general training knowledge, and must include document citations in responses. Which Vertex AI feature achieves this with the least custom pipeline code?",
+    "options": [
+      "Fine-tune Gemini on the policy documents so the model internalizes the content and can cite document section numbers in responses.",
+      "Use Vertex AI Agent Builder to create a Data Store backed by the Cloud Storage documents and configure Grounding with Vertex AI Search. At query time, Gemini retrieves relevant document chunks automatically and generates responses grounded in those chunks with inline source citations.",
+      "Manually embed all policy documents with the Embeddings API, store vectors in Vector Search, retrieve the top-5 chunks per query, and concatenate them into the Gemini prompt.",
+      "Upload all policy documents to the Gemini API system prompt and refresh the context weekly as documents change."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Agent Builder with Grounding via Vertex AI Search provides managed RAG without building a custom retrieval pipeline. Setup: (1) Create a Data Store in Agent Builder pointed at Cloud Storage; (2) Agent Builder handles document ingestion, chunking, embedding, and indexing automatically; (3) Configure `grounding_source=VertexAISearch(data_store_id=...)` in the generation config. At query time, Gemini performs retrieval, injects relevant chunks as context, and returns `GroundingChunks` metadata with source citations. Fine-tuning (option A) encodes knowledge in weights with no retrieval \u2014 it cannot cite specific documents or reflect document updates without retraining. Building a custom RAG pipeline (option C) is valid but requires significantly more engineering than Agent Builder's managed approach."
+  },
+  {
+    "id": 78,
+    "domain": "Domain 6: Generative AI",
+    "question": "You need to run Gemini 2.0 Flash on 5 million product descriptions to generate structured JSON summaries. Sending all requests via the synchronous online API would take days and exceed budget. What Vertex AI feature provides cost-effective offline large-scale LLM inference?",
+    "options": [
+      "Deploy Gemini to a Vertex AI Endpoint with 100 replicas and send all 5 million requests concurrently via parallel SDK calls.",
+      "Use Vertex AI Batch Prediction for Gemini: upload a JSONL file of requests to Cloud Storage, submit a batch prediction job specifying the Gemini model, and receive results written back to Cloud Storage when the job completes. Batch pricing is approximately 50% lower than online prediction pricing.",
+      "Use BigQuery ML `ML.GENERATE_TEXT` on a 5M-row BigQuery table \u2014 it automatically batches requests to Gemini at no additional cost over BigQuery slot usage.",
+      "Fine-tune Gemini on a representative sample of product descriptions so the model generates summaries without an explicit prompt, reducing input token costs."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Batch Prediction for Gemini is designed for asynchronous, large-scale LLM inference. Submit a JSONL file (one request per line with `contents` and optional generation config) to Cloud Storage, create a batch prediction job specifying the Gemini model ID, and the service processes all requests and writes outputs back to a GCS JSONL file. Batch pricing on Vertex AI is approximately 50% lower than the online prediction API for the same model, making it substantially cheaper at 5M requests. Trade-off: batch jobs complete asynchronously (no real-time SLA, typically hours). BigQuery ML `ML.GENERATE_TEXT` (option C) is a valid alternative for data already in BigQuery and also calls Gemini in batch mode, but the primary path for offline batch inference is the Vertex AI Batch Prediction API."
   }
 ]

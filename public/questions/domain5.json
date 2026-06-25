@@ -115,5 +115,44 @@
     ],
     "answer": 1,
     "explanation": "Model Cards (Mitchell et al., 2019, Google AI) are the industry-standard format for ML model documentation and responsible AI transparency. The `model-card-toolkit` library (`pip install model-card-toolkit`) provides a Python API to programmatically populate and render Model Cards as HTML or JSON. They are particularly important for models used in high-stakes decisions (credit, healthcare, hiring) and are increasingly required by regulation (EU AI Act) and corporate governance policies."
+  },
+  {
+    "id": 73,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "Your deployed churn prediction model is producing increasingly inaccurate predictions over time. Vertex AI Model Monitoring shows that input feature distributions have NOT changed significantly. However, ground truth labels collected 30 days after prediction show predictions are diverging from actual outcomes. What type of drift is occurring, and how is it detected?",
+    "options": [
+      "Data drift (covariate shift): the input feature distribution P(X) has changed. Detected by comparing current input statistics to the training baseline using Vertex AI Model Monitoring.",
+      "Concept drift: the relationship between features and the target P(y|X) has changed (e.g., customer behavior patterns that previously indicated churn no longer do so). Detected by comparing model predictions against delayed ground truth labels over rolling time windows.",
+      "Model decay: model weights degrade numerically over time on the serving hardware. Fix by redeploying the model from the same artifact.",
+      "Training-serving skew: preprocessing logic differs between training and serving. Fix with TF Transform to synchronize preprocessing graphs."
+    ],
+    "answer": 1,
+    "explanation": "Concept drift (also called posterior drift or label drift): the statistical relationship P(y|X) changes over time even when the input distribution P(X) remains stable. Examples: customer behavior changes after a product redesign; fraud tactics evolve to avoid detection; macroeconomic shifts alter churn drivers. This is distinct from data drift (covariate shift), where input statistics change. Concept drift can only be detected by collecting delayed ground truth labels and comparing model predictions to actual outcomes over rolling windows (monitoring AUC, accuracy decline). Vertex AI Model Monitoring alone (which monitors input statistics) cannot detect concept drift \u2014 you need a separate ground truth collection pipeline and performance monitoring layer."
+  },
+  {
+    "id": 74,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "Your organization trains a clinical prediction model on patient medical records. Legal requires that the trained model cannot be used to reconstruct individual patient data (preventing membership inference attacks). Which technique provides a mathematical privacy guarantee during training?",
+    "options": [
+      "Store all training data in a VPC-SC protected BigQuery dataset and restrict access to the model artifact via IAM \u2014 infrastructure controls prevent data reconstruction.",
+      "Apply Differential Privacy during training using DP-SGD (Differentially Private Stochastic Gradient Descent): clip per-sample gradients to bound sensitivity, then add calibrated Gaussian noise before each weight update. The (epsilon, delta) privacy budget provides a formal bound on information leakage per individual. Implement via TensorFlow Privacy's `DPKerasAdamOptimizer` in a Vertex AI Custom Training job.",
+      "Encrypt model weights with Cloud KMS and store them in a Confidential VM \u2014 weights are decrypted only at inference time, preventing reconstruction.",
+      "Use Federated Learning: train locally on each hospital's data without sharing records, then aggregate updates centrally using Vertex AI."
+    ],
+    "answer": 1,
+    "explanation": "Differential Privacy (DP) provides a rigorous mathematical guarantee (\u03b5, \u03b4)-DP: the model's output is nearly indistinguishable whether or not any specific individual's data was in the training set. DP-SGD (Abadi et al., 2016): (1) clip per-sample gradients to a maximum L2 norm (bounding each individual's contribution); (2) add Gaussian noise calibrated to the clipping threshold before aggregating gradients (masking individual contributions). The privacy budget \u03b5 quantifies the privacy-utility tradeoff: lower \u03b5 means stronger privacy guarantees but reduced model accuracy. The TensorFlow Privacy library provides drop-in DP-SGD optimizers compatible with tf.keras. Infrastructure controls (IAM, VPC-SC) prevent unauthorized access to data but provide no guarantee against information leakage through the model's weights themselves."
+  },
+  {
+    "id": 75,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "An audit of your loan approval model reveals applicants in rural zip codes have a 23% lower approval rate than urban applicants with identical credit profiles. The disparity traces to historical lending patterns encoded in the training data. What is the most appropriate corrective technical action?",
+    "options": [
+      "Remove the zip_code feature from the model and retrain \u2014 eliminating the geographic feature will remove the geographic bias.",
+      "Apply post-processing fairness calibration: use the What-If Tool or Fairness Indicators to find per-group decision thresholds that equalize false negative rates across rural and urban groups (equalized odds). Deploy the calibrated thresholds in the serving layer. In parallel, investigate representative data collection to address structural bias at the source.",
+      "Oversample rural applicants in the training set using SMOTE to balance class representation and retrain.",
+      "Document the disparity in the Model Card and monitor it monthly \u2014 the model reflects real historical data, so no technical intervention is required."
+    ],
+    "answer": 1,
+    "explanation": "Removing zip_code (option A) is 'fairness through unawareness' \u2014 correlated features (income, home value, credit history) encode the same geographic information through proxy variables, and bias persists. Post-processing threshold calibration (Hardt et al., 2016): rather than retraining, adjust the classification decision threshold per demographic group so that error rates are equalized (equalized odds: equal TPR and FPR across groups). This is immediately deployable without retraining and works on the existing model. The What-If Tool and Fairness Indicators support per-group threshold optimization experiments on a held-out evaluation set. SMOTE (option C) addresses class imbalance within a class, not demographic parity across groups. Monitoring without action (option D) is insufficient when the disparity is confirmed as unjustified."
   }
 ]
