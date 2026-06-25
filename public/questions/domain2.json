@@ -62,7 +62,7 @@
       "Cloud Dataflow with custom DoFn functions that perform validation and write results to Cloud Logging."
     ],
     "answer": 2,
-    "explanation": "Dataplex is Google Cloud's unified data management and governance service. It auto-discovers metadata across GCS and BigQuery (via Lakes/Zones/Assets), provides a searchable Data Catalog with lineage, and supports scheduled Data Quality Tasks (SQL-based rule checks) that publish results to Pub/Sub for alerting \u2014 all without writing custom code."
+    "explanation": "Dataplex is Google Cloud's unified data management and governance service. It auto-discovers metadata across GCS and BigQuery (via Lakes/Zones/Assets), provides a searchable Data Catalog with lineage, and supports scheduled Data Quality Tasks (SQL-based rule checks) that publish results to Pub/Sub for alerting — all without writing custom code."
   },
   {
     "id": 42,
@@ -72,10 +72,10 @@
       "Increase the training budget; AutoML compensates for class imbalance automatically with more time.",
       "Configure a positive class weight (upweight the minority class) in the AutoML training settings and set the optimization objective to **AUC-PR** (Area Under Precision-Recall Curve) instead of AUC-ROC. AUC-PR is more sensitive to minority class performance in highly imbalanced datasets.",
       "Use stratified sampling to create a perfectly balanced 50/50 dataset by discarding most non-fraud rows.",
-      "Use anomaly detection instead \u2014 classification cannot handle ratios below 1%."
+      "Use anomaly detection instead — classification cannot handle ratios below 1%."
     ],
     "answer": 1,
-    "explanation": "At 0.3% positive rate, AUC-ROC can be misleadingly high because the model can score the large negative class well even if it misses all fraud. AUC-PR focuses on precision and recall for the minority class \u2014 more meaningful for imbalanced problems. Upweighting the positive class tells AutoML to penalize false negatives more heavily. In the AutoML API, set `optimization_objective='maximize-au-prc'` and `weight_column` or class weights in the training spec."
+    "explanation": "At 0.3% positive rate, AUC-ROC can be misleadingly high because the model can score the large negative class well even if it misses all fraud. AUC-PR focuses on precision and recall for the minority class — more meaningful for imbalanced problems. Upweighting the positive class tells AutoML to penalize false negatives more heavily. In the AutoML API, set `optimization_objective='maximize-au-prc'` and `weight_column` or class weights in the training spec."
   },
   {
     "id": 43,
@@ -83,12 +83,12 @@
     "question": "You are building a Vertex AI training pipeline with TFX. You need to ensure feature transformations (e.g., normalization, vocabulary lookup) are applied identically during training and serving without code duplication. Which TFX component enables this?",
     "options": [
       "Write feature engineering in a Python preprocessing_fn and wrap it in a separate Cloud Dataflow job.",
-      "Use the **TFX Transform component** (`tft.AnalyzeAndTransformDataset`): it materializes the feature engineering logic as a TensorFlow graph saved in a `transform_fn` artifact. This artifact is embedded in the exported SavedModel via `transform_fn_io` and executed during both training data generation and serving \u2014 guaranteeing identical transformations with no code duplication.",
+      "Use the **TFX Transform component** (`tft.AnalyzeAndTransformDataset`): it materializes the feature engineering logic as a TensorFlow graph saved in a `transform_fn` artifact. This artifact is embedded in the exported SavedModel via `transform_fn_io` and executed during both training data generation and serving — guaranteeing identical transformations with no code duplication.",
       "Use Feature Store to store pre-computed feature values and reference them in the TFX pipeline.",
       "Use TFX StatisticsGen to compute and cache feature statistics for reuse at serving time."
     ],
     "answer": 1,
-    "explanation": "TFX Transform solves the training-serving skew problem for feature engineering. `preprocessing_fn` defines transformations in TensorFlow ops. `AnalyzeAndTransformDataset` runs two passes: Analyze (compute global statistics like vocabulary, mean, std) and Transform (apply them). The resulting `transform_fn` TensorFlow graph is exported alongside the model and executed at serving time inside the SavedModel \u2014 the same TF graph runs in both contexts, making skew impossible."
+    "explanation": "TFX Transform solves the training-serving skew problem for feature engineering. `preprocessing_fn` defines transformations in TensorFlow ops. `AnalyzeAndTransformDataset` runs two passes: Analyze (compute global statistics like vocabulary, mean, std) and Transform (apply them). The resulting `transform_fn` TensorFlow graph is exported alongside the model and executed at serving time inside the SavedModel — the same TF graph runs in both contexts, making skew impossible."
   },
   {
     "id": 44,
@@ -101,6 +101,45 @@
       "Use Dataprep to visually inspect data quality before each training run."
     ],
     "answer": 1,
-    "explanation": "The TFX data validation trio: (1) StatisticsGen computes feature statistics (mean, std, quantiles, top values, missing rate) using Apache Beam \u2014 scalable to large datasets; (2) SchemaGen infers or loads a schema (TFDV Schema proto) defining expected feature types, value sets, and bounds; (3) ExampleValidator compares new statistics to the schema and flags anomalies (new values, null spikes, distribution shift vs. baseline). This is the standard GCP MLOps data quality gate."
+    "explanation": "The TFX data validation trio: (1) StatisticsGen computes feature statistics (mean, std, quantiles, top values, missing rate) using Apache Beam — scalable to large datasets; (2) SchemaGen infers or loads a schema (TFDV Schema proto) defining expected feature types, value sets, and bounds; (3) ExampleValidator compares new statistics to the schema and flags anomalies (new values, null spikes, distribution shift vs. baseline). This is the standard GCP MLOps data quality gate."
+  },
+  {
+    "id": 64,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your team has collected 200,000 unlabeled product images for training a defect detection model. You need human annotators to draw bounding boxes around defects. You want a managed service that supports crowd-sourced annotation with built-in quality control (consensus across multiple labelers) and integrates natively with Vertex AI Datasets. Which service should you use?",
+    "options": [
+      "Upload images to Cloud Storage and use a third-party annotation platform (e.g., Scale AI), then manually import labels into Vertex AI.",
+      "Use Vertex AI Data Labeling Service: create a labeling job directly on a Vertex AI Image Dataset, specify BOUNDING_BOX as the annotation type, define the defect label taxonomy, and submit to a pool of human labelers. The service manages labeler assignment, consensus scoring, and delivers completed annotations directly back to the dataset.",
+      "Use AutoML Vision active learning — upload unlabeled images and AutoML will label them automatically without human labelers.",
+      "Write a Cloud Run service that calls the Cloud Vision API to auto-annotate defects and stores bounding boxes in BigQuery."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Data Labeling Service is the managed annotation service integrated with Vertex AI Datasets. It supports bounding box, classification, segmentation, and text annotation tasks. Human labelers are sourced from Google's labeling pool or your own crowd. Quality control is built in via multi-labeler consensus. Completed annotations are delivered directly to the Vertex AI Dataset, ready for AutoML or custom training — no data movement required. Cloud Vision API can detect objects generically but cannot be trained to label domain-specific defects with custom taxonomy."
+  },
+  {
+    "id": 65,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are building an online recommendation system. The model needs a real-time feature 'clicks_in_last_5_minutes' per user, updated continuously as click events arrive. This feature must be readable with under 10ms latency at prediction time. How should you architect the real-time feature pipeline?",
+    "options": [
+      "Use a Cloud Dataflow batch job that runs every 5 minutes, reads all click events from BigQuery, aggregates per user, and writes to a BigQuery table that the prediction endpoint queries at request time.",
+      "Stream click events via Cloud Pub/Sub into a Cloud Dataflow pipeline that computes the 5-minute windowed aggregation per user and writes results to Vertex AI Feature Store online store (Bigtable-backed) for sub-10ms feature serving at prediction time.",
+      "Use Vertex AI Feature Store's scheduled offline ingestion from Cloud Storage to batch-compute the feature every 5 minutes.",
+      "Compute the feature inside the prediction endpoint container at request time by querying the last 5 minutes of click events from Cloud Spanner."
+    ],
+    "answer": 1,
+    "explanation": "Real-time feature pipelines on GCP follow this pattern: (1) Events arrive in Cloud Pub/Sub; (2) Cloud Dataflow reads from Pub/Sub and computes windowed aggregations (5-minute windows using Apache Beam); (3) Aggregated features are written to Vertex AI Feature Store's online store, which is backed by Cloud Bigtable for sub-10ms key-value reads; (4) At prediction time, the serving pipeline reads from the Feature Store online store. Batch polling every 5 minutes introduces up to 5-minute staleness and uses higher-latency BigQuery reads. Computing at request time adds prediction latency and unnecessary load on the transactional database."
+  },
+  {
+    "id": 66,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your ML training dataset is stored in a BigQuery table with 5 billion rows spanning 3 years of transactions. Training jobs query only the most recent 90 days of data. Each query scans the full table, taking over 10 minutes and incurring high costs. How should you restructure the BigQuery table to reduce scan cost and query time for training?",
+    "options": [
+      "Export the last 90 days of data to Cloud Storage as Parquet files before each training run using a Cloud Dataflow pipeline.",
+      "Create a BigQuery Materialized View over the last 90 days that refreshes daily and train on the materialized view.",
+      "Partition the table by the transaction_date column (DATE or TIMESTAMP partitioning). Training queries that include a WHERE transaction_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY) clause will prune partitions, scanning only the relevant ~10% of the table instead of 100%, dramatically reducing cost and query time.",
+      "Enable BigQuery BI Engine acceleration on the table to cache frequently queried rows in memory."
+    ],
+    "answer": 2,
+    "explanation": "BigQuery partition pruning is the standard technique for limiting scan cost on time-series datasets. When a table is partitioned by a date/timestamp column and queries include a filter on that column, BigQuery scans only the matching partitions. For a 3-year table queried for 90 days, this reduces scanned bytes from 100% to ~8%, lowering cost (BigQuery charges per TB scanned) and query time proportionally. Optionally add CLUSTER BY product_id or customer_id to further optimize for secondary filters. Exporting to GCS adds pipeline complexity and extra storage cost. Materialized Views add refresh overhead and introduce potential staleness."
   }
 ]

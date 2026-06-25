@@ -101,7 +101,7 @@
       "Add a Cloud Function post-processor that retries the Gemini call up to 5 times until valid JSON is returned."
     ],
     "answer": 2,
-    "explanation": "Controlled generation via response_schema (combined with response_mime_type='application/json') enforces schema compliance at the API level \u2014 Gemini is constrained to only output tokens that form a valid JSON object matching your schema. This guarantees 100% schema-valid output without fine-tuning or retry logic."
+    "explanation": "Controlled generation via response_schema (combined with response_mime_type='application/json') enforces schema compliance at the API level — Gemini is constrained to only output tokens that form a valid JSON object matching your schema. This guarantees 100% schema-valid output without fine-tuning or retry logic."
   },
   {
     "id": 56,
@@ -109,12 +109,12 @@
     "question": "You are building a Gemini-powered news assistant that must answer questions about current events with real-time accuracy. Gemini has a training knowledge cutoff. What Vertex AI feature enables dynamic retrieval of current information without a custom RAG pipeline?",
     "options": [
       "Add today's date to the system prompt and instruct Gemini to avoid outdated facts.",
-      "Enable **Google Search Grounding**: configure `tools=[Tool(google_search_retrieval=GoogleSearchRetrieval())]` in the Gemini API call. Gemini automatically performs live Google Search during generation and cites retrieved sources. No pre-indexing or RAG pipeline is needed \u2014 search happens at inference time.",
+      "Enable **Google Search Grounding**: configure `tools=[Tool(google_search_retrieval=GoogleSearchRetrieval())]` in the Gemini API call. Gemini automatically performs live Google Search during generation and cites retrieved sources. No pre-indexing or RAG pipeline is needed — search happens at inference time.",
       "Fine-tune Gemini monthly on a corpus of recent news articles.",
       "Use Vertex AI Vector Search with a daily-updated news embedding index for RAG-based retrieval."
     ],
     "answer": 1,
-    "explanation": "Google Search Grounding is a built-in Gemini capability on Vertex AI: when configured as a tool, Gemini decides when to invoke Google Search during generation and grounds its response in real-time web content with citations. This is distinct from RAG (which requires you to build and maintain a retrieval index) \u2014 Search Grounding delegates the retrieval to Google's search infrastructure, providing up-to-date information with zero pipeline maintenance."
+    "explanation": "Google Search Grounding is a built-in Gemini capability on Vertex AI: when configured as a tool, Gemini decides when to invoke Google Search during generation and grounds its response in real-time web content with citations. This is distinct from RAG (which requires you to build and maintain a retrieval index) — Search Grounding delegates the retrieval to Google's search infrastructure, providing up-to-date information with zero pipeline maintenance."
   },
   {
     "id": 57,
@@ -127,19 +127,58 @@
       "Train a Vertex AI AutoML Vision classifier specifically for crack detection and deploy separately."
     ],
     "answer": 1,
-    "explanation": "Gemini is natively multimodal: it processes text, images, video, audio, and PDFs within a single model. Sending image + text in the same content part is the standard pattern \u2014 no pre-processing with Vision API needed. For the `google-genai` SDK: `client.models.generate_content(model='gemini-2.5-flash', contents=[Part.from_bytes(...), Part.from_text(...)])`. This enables direct image question-answering without building a separate pipeline."
+    "explanation": "Gemini is natively multimodal: it processes text, images, video, audio, and PDFs within a single model. Sending image + text in the same content part is the standard pattern — no pre-processing with Vision API needed. For the `google-genai` SDK: `client.models.generate_content(model='gemini-2.5-flash', contents=[Part.from_bytes(...), Part.from_text(...)])`. This enables direct image question-answering without building a separate pipeline."
   },
   {
     "id": 58,
     "domain": "Domain 6: Generative AI",
     "question": "You have 500 labeled prompt-response pairs for teaching Gemini Flash a specific enterprise tone. Full SFT is expensive. What is prompt tuning on Vertex AI, and how does it differ from SFT?",
     "options": [
-      "Prompt tuning and SFT are the same \u2014 both update the full set of model weights.",
-      "**Prompt tuning** (soft prompt tuning) prepends a small set of trainable token embeddings to every input. Only these embeddings are optimized; base model weights are frozen. Requires far less compute than SFT. **SFT** updates actual model weights (or a large subset via LoRA) \u2014 better for structural output format changes. For tone adaptation with 500 examples, prompt tuning is often sufficient.",
+      "Prompt tuning and SFT are the same — both update the full set of model weights.",
+      "**Prompt tuning** (soft prompt tuning) prepends a small set of trainable token embeddings to every input. Only these embeddings are optimized; base model weights are frozen. Requires far less compute than SFT. **SFT** updates actual model weights (or a large subset via LoRA) — better for structural output format changes. For tone adaptation with 500 examples, prompt tuning is often sufficient.",
       "Prompt tuning automatically generates an optimal few-shot prompt using a genetic algorithm.",
       "Prompt tuning is only available for Gemini Pro; Gemini Flash requires SFT for any fine-tuning."
     ],
     "answer": 1,
-    "explanation": "Soft prompt tuning (Lester et al., 2021): prepend P trainable continuous token embeddings (the 'soft prompt') to every input. Only these P\u00d7d parameters are updated by gradient descent \u2014 the LLM backbone is fully frozen. This makes training extremely parameter-efficient (often < 0.1% of model parameters). Trade-off: prompt tuning adapts style/tone well but cannot teach the model new structural behaviors (e.g., a rigid JSON schema) as effectively as SFT or LoRA, which actually modify the model weights."
+    "explanation": "Soft prompt tuning (Lester et al., 2021): prepend P trainable continuous token embeddings (the 'soft prompt') to every input. Only these P×d parameters are updated by gradient descent — the LLM backbone is fully frozen. This makes training extremely parameter-efficient (often < 0.1% of model parameters). Trade-off: prompt tuning adapts style/tone well but cannot teach the model new structural behaviors (e.g., a rigid JSON schema) as effectively as SFT or LoRA, which actually modify the model weights."
+  },
+  {
+    "id": 76,
+    "domain": "Domain 6: Generative AI",
+    "question": "You are building a semantic document search system over 5 million internal documents. Users should be able to search by meaning (e.g., 'find contracts about data privacy') rather than by keyword. You plan to use text embeddings and vector similarity search. Which GCP services form the core infrastructure and what are the key setup steps?",
+    "options": [
+      "Use BigQuery VECTOR_SEARCH with embeddings stored in an ARRAY<FLOAT64> column and run exact cosine similarity queries in SQL.",
+      "Deploy an Elasticsearch cluster on GKE, index document embeddings, and use its approximate nearest neighbor (ANN) search.",
+      "Generate embeddings using a Vertex AI text-embedding model (e.g., text-embedding-005), create a Vertex AI Vector Search Index using the ANN algorithm, upsert the embeddings, deploy the index to an Index Endpoint, and query it at search time by embedding the user's query and calling find_neighbors().",
+      "Use AlloyDB with the pgvector extension: store embeddings and use the ivfflat index for similarity search."
+    ],
+    "answer": 2,
+    "explanation": "Vertex AI Vector Search is GCP's managed vector database built on Google's ScaNN (Scalable Nearest Neighbors) ANN algorithm. Setup workflow: (1) Generate embeddings using text-embedding-005 via the Vertex AI Embeddings API; (2) Create a Vector Search Index (specify dimension and distance metric: DOT_PRODUCT or COSINE); (3) Upsert embeddings in batches; (4) Deploy the index to an Index Endpoint (public or VPC-private); (5) At query time, embed the user's query and call the endpoint with find_neighbors(query_embedding, num_neighbors=10). Vertex AI Vector Search scales to billions of vectors with sub-100ms query latency. BigQuery VECTOR_SEARCH is an alternative for smaller datasets with SQL-native integration but has higher per-query cost and latency at scale."
+  },
+  {
+    "id": 77,
+    "domain": "Domain 6: Generative AI",
+    "question": "You have fine-tuned Gemini Flash for a medical Q&A application and need to evaluate response quality across 10,000 test examples for factual accuracy (groundedness to source documents), coherence, and safety — without paying human raters for every response. What is the recommended GCP-native approach for automated LLM evaluation at scale?",
+    "options": [
+      "Compute ROUGE-L scores between generated responses and reference answers stored in BigQuery — ROUGE-L captures factual accuracy and coherence.",
+      "Use the Vertex AI Gen AI Evaluation Service (rapid_evaluation SDK): define evaluation metrics (PointwiseMetric for groundedness, coherence, safety) and use Gemini as an LLM judge. The service runs evaluation tasks in parallel across the test dataset and returns per-metric scores with reasoning.",
+      "Send all 10,000 examples to human raters via Vertex AI Data Labeling Service with a 5-point quality rubric.",
+      "Deploy the model and use A/B testing in production — real user engagement signals are the most accurate quality metric."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Gen AI Evaluation Service provides automated LLM evaluation using Gemini as a judge (model-based evaluation). The rapid_evaluation SDK (from vertexai.preview.evaluation import EvalTask) supports: (1) Pointwise metrics — evaluate each response independently: groundedness (is the response supported by the provided context?), coherence, fluency, safety, instruction following; (2) Pairwise metrics — compare two models side by side. LLM-as-judge correlates well with human raters for many metrics while scaling to large evaluation sets without per-example human cost. ROUGE scores measure n-gram overlap but miss semantic correctness and are unreliable for open-ended generation tasks in medical or legal domains."
+  },
+  {
+    "id": 78,
+    "domain": "Domain 6: Generative AI",
+    "question": "A healthcare company needs to deploy an LLM for internal clinical note summarization. HIPAA compliance requirements mean patient data cannot be sent to external APIs. The team wants to use an open-source model (Gemma 2 9B) running entirely within their GCP VPC with no data egress to Google's shared infrastructure. What deployment architecture should they use?",
+    "options": [
+      "Use the Vertex AI Gemini API with VPC Service Controls — this keeps all data within Google's network and is HIPAA-eligible.",
+      "Deploy Gemma 2 9B on Google Kubernetes Engine (GKE) with GPU node pools: pull the model from Vertex AI Model Garden, containerize with a serving framework (vLLM or HuggingFace TGI), deploy as a Kubernetes Deployment with GPU node selectors, and expose via an internal load balancer accessible only within the VPC. All inference runs within their own GCP project.",
+      "Deploy Gemma 2 on Cloud Run with GPU support — Cloud Run is the simplest serverless deployment that keeps all inference within GCP.",
+      "Use BigQuery ML with ML.GENERATE_TEXT and a Gemma remote model connection — data stays within BigQuery's VPC."
+    ],
+    "answer": 1,
+    "explanation": "For strict data residency where patient data cannot leave the organization's own GCP project, self-hosting open-source models on GKE is the appropriate architecture: (1) GKE provides full control over network egress (disable external IPs, use Private Google Access only); (2) GPU node pools (L4 or A100 GPUs) handle model inference; (3) vLLM or HuggingFace TGI provide high-throughput LLM serving with continuous batching; (4) an internal load balancer restricts access to within the VPC — no public endpoint. Gemma 2 is available via Vertex AI Model Garden for download into the customer's own project. The Gemini API, while HIPAA-eligible under Google's BAA, runs in Google's shared infrastructure rather than the customer's own project, which some compliance programs prohibit."
   }
 ]
