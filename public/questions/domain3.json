@@ -154,5 +154,57 @@
     ],
     "answer": 2,
     "explanation": "Early Stopping automatically halts training when validation performance plateaus, preventing overfitting and wasted compute. Key parameters: `monitor='val_loss'` (metric to watch), `patience=N` (epochs to wait without improvement), `restore_best_weights=True` (reload the checkpoint from the best epoch when training stops). On Vertex AI Custom Training, combine with `ModelCheckpoint(filepath='gs://bucket/checkpoints/', save_best_only=True)` so the best weights are persisted to GCS. Hard-coding epochs is brittle and doesn't adapt to dataset or model changes. Regularization reduces overfitting severity but does not stop unnecessary training."
+  },
+  {
+    "id": 90,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team needs to train a model on Vertex AI Custom Training. The training pipeline requires a custom C++ feature preprocessing library compiled as a shared object (.so) file, and a specific version of a Python package not available in any Google-managed pre-built training container. Should you use a Google-managed pre-built container or a custom Docker container, and why?",
+    "options": [
+      "Use a Google-managed pre-built container (e.g., gcr.io/cloud-aiplatform/training/tf-cpu.2-13) — it supports loading .so files dynamically via Python's ctypes module at runtime without any container modifications.",
+      "Use a custom Docker container: create a Dockerfile that installs the C++ library and its dependencies at build time, compiles or copies the .so file, pins the required Python package version, and pushes the image to Artifact Registry. Reference the custom image URI in the CustomTrainingJob spec.",
+      "Use Cloud Dataflow to run the C++ preprocessing as a separate pipeline step before the Vertex AI training job — Vertex AI Custom Training cannot execute non-Python code of any kind.",
+      "Use Vertex AI AutoML Tabular instead — it supports custom C++ preprocessing plugins through its built-in feature transformer API."
+    ],
+    "answer": 1,
+    "explanation": "Google-managed pre-built containers include a fixed set of ML framework dependencies (TensorFlow, PyTorch, scikit-learn, XGBoost) at specific versions. When a training job requires custom system libraries, compiled binaries (.so files), specific C++ toolchain dependencies, or pinned Python package versions not in the pre-built image, a custom Docker container is required. Workflow: (1) Write a Dockerfile FROM a suitable base image; (2) RUN commands to install the C++ library and Python dependencies; (3) COPY the training script; (4) Build and push to Artifact Registry with `docker build` and `docker push`; (5) Reference the Artifact Registry image URI in the `worker_pool_specs[].container_spec.image_uri` field of the CustomTrainingJob. Pre-built containers are correct for standard framework usage without custom system dependencies."
+  },
+  {
+    "id": 91,
+    "domain": "Domain 3: Model Development",
+    "question": "Your team trains a large language model on Vertex AI Custom Training using 8 A100 GPUs. Training runs for 48+ hours. The training script saves model checkpoints to Cloud Storage every 30 minutes and can resume from the latest checkpoint. GPU training costs are very high. Which Vertex AI configuration can reduce training costs by 60-70% with no code changes to the training script itself?",
+    "options": [
+      "Enable Vertex AI Vizier to find a more compute-efficient hyperparameter configuration that converges faster, reducing total GPU hours.",
+      "Use Vertex AI Spot (preemptible) VMs: set `scheduling.spot=True` in the CustomTrainingJob spec. Spot VMs provide the same hardware at steep discounts (60-91% cheaper than on-demand) in exchange for the possibility of preemption with 30 seconds notice. Since checkpoints are saved to GCS every 30 minutes, the job resumes from the last checkpoint with minimal lost work.",
+      "Switch to a multi-node MultiWorkerMirroredStrategy setup with more workers — distributing across more machines shortens wall-clock time and therefore total cost.",
+      "Export the model weights to bfloat16 precision before training — lower precision training requires less GPU memory and significantly reduces compute cost."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Spot (preemptible) VMs provide the same hardware as on-demand instances at 60-91% lower cost, in exchange for the possibility of preemption when Compute Engine reclaims the capacity. For fault-tolerant training jobs that checkpoint to GCS every 30 minutes, preemption results in at most 30 minutes of lost work and the job resumes automatically. Configure via `scheduling=Scheduling(spot=True)` in the Python SDK or `scheduling.spot: true` in the job YAML. For multi-worker distributed training on Spot VMs, the job manager automatically detects preemption and restarts the affected workers. Spot VMs are unavailable for some GPU types or regions during periods of high demand — consider fallback strategies like multiple regions or GPU type substitution for high-priority jobs."
+  },
+  {
+    "id": 92,
+    "domain": "Domain 3: Model Development",
+    "question": "You are fine-tuning a pre-trained BERT model for text classification on Vertex AI Custom Training. During the first 500 training steps, you observe a large spike in training loss that partially destroys the pre-trained representations before stabilizing. Which learning rate scheduling technique specifically addresses this early instability when starting from pre-trained weights?",
+    "options": [
+      "Use a constant high learning rate (e.g., 5e-3) throughout training — the initial spike is normal and resolves without intervention.",
+      "Apply L2 weight decay regularization with a high coefficient to constrain weight updates and prevent the large initial loss spike.",
+      "Use learning rate warmup: start with a very small learning rate (e.g., 1e-7) and linearly increase it to the target learning rate (e.g., 2e-5) over the first N warmup steps (typically 6-10% of total training steps), then apply linear or cosine decay. This allows the optimizer's momentum to accumulate gradually in the correct direction before making large updates.",
+      "Use the Adam optimizer with beta1=0.99 — the high momentum coefficient smooths out initial gradient variance and eliminates the spike."
+    ],
+    "answer": 2,
+    "explanation": "Learning rate warmup is standard practice when fine-tuning large pre-trained language models. When training starts with a large learning rate, the optimizer makes large gradient updates immediately, destabilizing the pre-trained representations that encode valuable language knowledge. Warmup works by: (1) starting with near-zero LR so initial batches make tiny adjustments; (2) linearly increasing to the target LR over `num_warmup_steps`; (3) the optimizer's momentum accumulates in the correct direction gradually, preventing the initial spike. The canonical BERT fine-tuning recipe (Devlin et al., 2019) uses 10% of training steps as warmup with linear decay after. In Keras, use `tf.keras.optimizers.schedules.PolynomialDecay` with warmup steps, or the `transformers.get_linear_schedule_with_warmup` function. Pass the schedule to the optimizer in the training script as usual — no Vertex AI-specific configuration is required."
+  },
+  {
+    "id": 93,
+    "domain": "Domain 3: Model Development",
+    "question": "You have a TensorFlow SavedModel for text classification trained in FP32 that is deployed on Vertex AI with CPU-only machine types. Inference latency is 180ms but your SLA requires under 60ms. The model occupies 1.2GB of memory. You want to reduce latency and memory usage without retraining. Which technique achieves this?",
+    "options": [
+      "Enable XLA JIT compilation on the serving endpoint — XLA recompiles the TensorFlow graph for faster CPU execution without changing weights.",
+      "Apply TensorFlow Lite post-training INT8 quantization: convert the SavedModel using the TFLite Converter with a small calibration dataset to compute optimal quantization ranges. INT8 arithmetic is 2-4x faster than FP32 on CPU, and the model size shrinks from 1.2GB to approximately 300MB. Deploy the quantized .tflite model via a custom serving container on Vertex AI.",
+      "Increase the number of serving replicas behind the Vertex AI Endpoint — more replicas parallelize concurrent requests and reduce per-request latency.",
+      "Export the model to ONNX format using tf2onnx and deploy to ONNXRuntime on a Vertex AI custom container — ONNX always provides faster CPU inference than native TensorFlow."
+    ],
+    "answer": 1,
+    "explanation": "Post-training quantization (PTQ) converts FP32 weights to INT8 without retraining, leveraging the fact that modern CPUs execute INT8 arithmetic 2-4x faster than FP32 while model accuracy typically degrades by less than 1%. The TFLite Converter supports: (1) dynamic range quantization (weights only, fastest to apply, least speedup); (2) full INT8 quantization (weights and activations, requires a small representative calibration dataset, best speedup and accuracy tradeoff). Process: `converter = tf.lite.TFLiteConverter.from_saved_model(path)` → `converter.optimizations = [tf.lite.Optimize.DEFAULT]` → provide `representative_dataset_gen` → `tflite_model = converter.convert()`. Increasing replicas reduces queue latency under high concurrency but does not reduce the per-request compute time (180ms). XLA provides modest speedups for graph-structured computations but not the 3x reduction needed to reach 60ms."
   }
 ]

@@ -154,5 +154,57 @@
     ],
     "answer": 2,
     "explanation": "Fairness metrics measure distinct properties: (1) Demographic Parity: P(Ŷ=1 | Group) equal — equal positive prediction rates regardless of actual qualification. (2) Equal Opportunity (Hardt et al., 2016): P(Ŷ=1 | Y=1, Group) equal — equal True Positive Rates among truly qualified candidates. (3) Predictive Parity: P(Y=1 | Ŷ=1, Group) equal — equal precision. Here, similar overall rates (38% vs 40%) mask a significant TPR disparity (90% vs 65%), violating Equal Opportunity. This is a classic example where Demographic Parity can be satisfied simultaneously with an Equal Opportunity violation — demonstrating why multiple fairness metrics must be evaluated. Use the Vertex AI What-If Tool or TFMA with SlicingSpec to compute per-group TPR/FNR."
+  },
+  {
+    "id": 98,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "A hospital wants to train a readmission risk model using a dataset of 50,000 patient medical records. The legal team is concerned that the trained model's parameters could inadvertently memorize specific patient records, allowing adversaries to determine whether a particular individual was in the training set through a membership inference attack. Which privacy-preserving ML technique directly mitigates this risk at the training level?",
+    "options": [
+      "Encrypt the training dataset at rest using Cloud KMS customer-managed encryption keys (CMEK) — an encrypted dataset cannot be memorized by the model.",
+      "Use federated learning — training on decentralized data means no individual's data is sent to a central server, which prevents memorization.",
+      "Apply differential privacy (DP) during training using the TensorFlow Privacy library (DP-SGD): add mathematically calibrated Gaussian noise to gradients during backpropagation. This provides a formal (epsilon, delta)-DP guarantee, bounding the maximum influence any individual record can have on model parameters and making membership inference attacks statistically infeasible.",
+      "Use Sensitive Data Protection (Cloud DLP) to de-identify training records before training — removing PII prevents any patient data from appearing in model weights."
+    ],
+    "answer": 2,
+    "explanation": "Differential privacy (DP) provides a mathematical guarantee that the presence or absence of any single individual in the training set has a bounded effect on the model's output (parameterized by epsilon: smaller = stronger privacy, larger = better utility). DP-SGD (Abadi et al., 2016) implements this by: (1) clipping per-sample gradients to bound each individual's contribution; (2) adding calibrated Gaussian noise to the aggregated batch gradient before weight updates. The TensorFlow Privacy library provides `DPKerasSGDOptimizer` and `DPAdamOptimizer` as drop-in optimizer replacements. Data encryption (CMEK) protects data at rest but does not prevent the model from memorizing statistical patterns during training. Federated learning reduces data centralization but does not provide formal DP guarantees without additional noise injection (DP is typically combined with federated learning for both benefits). De-identification removes explicit PII but does not prevent memorization of non-PII patterns unique to individuals."
+  },
+  {
+    "id": 99,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "A bank deploys an ML model for loan approval decisions. A customer is rejected and asks: 'What is the minimum change I could make to my profile to receive approval?' Your compliance team wants to integrate this counterfactual explanation capability into the model's transparency workflow. Which GCP tool specifically supports generating counterfactual explanations for individual predictions?",
+    "options": [
+      "Vertex AI Explainability with Integrated Gradients: attribution scores show which features most influenced the rejection, implicitly indicating what to change.",
+      "The Vertex AI What-If Tool (WIT): load your model and evaluation dataset, select the rejected applicant's data point, and use WIT's counterfactual panel to find the nearest data point that receives a positive prediction. WIT shows the minimum feature-value changes that would flip the prediction from rejection to approval.",
+      "Vertex AI Model Monitoring: configure feature attribution drift alerts to identify when a customer's features shift enough to change the model's decision over time.",
+      "BigQuery ML EXPLAIN_PREDICT: the per-feature Shapley contributions from EXPLAIN_PREDICT indicate which features to change to alter the prediction outcome."
+    ],
+    "answer": 1,
+    "explanation": "The What-If Tool (WIT) is specifically designed for counterfactual analysis and interactive model exploration. For counterfactuals: (1) load the model (Vertex AI Endpoint or TF SavedModel) and evaluation dataset into WIT; (2) select the rejected applicant's record; (3) WIT's 'What-if' panel finds the nearest data point in the dataset that receives a positive prediction (nearest counterfactual by L1/L2 distance in feature space); (4) the feature-value differences between the original and counterfactual show the minimum change needed for approval. This provides actionable explanations for applicants and aligns with EU AI Act Article 86 (right to explanation for automated decisions). Integrated Gradients quantifies feature importance for the current prediction but does not compute alternative scenarios or find the nearest positive decision boundary. EXPLAIN_PREDICT also provides feature attributions for the current prediction, not counterfactuals."
+  },
+  {
+    "id": 100,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "Your organization is deploying an AI system to assist with criminal sentencing recommendations. The model predicts recidivism risk with 82% overall accuracy. Judges propose using the model's risk score as the primary basis for sentencing decisions to increase consistency across courtrooms. From a responsible AI perspective, what governance requirement is critical for this deployment?",
+    "options": [
+      "The 82% accuracy is sufficient for high-stakes deployment — use the model as the sole decision-maker to maximize sentencing consistency and eliminate human subjectivity.",
+      "Mandatory human oversight: the model output must be framed explicitly as a decision-support tool, not a decision-maker. Judges must review the full case context, be informed of the model's known limitations and demographic performance disparities, and retain final sentencing authority. Document limitations in a Model Card and establish an appeals mechanism for contesting AI-influenced decisions.",
+      "Improve model accuracy to 95% before deployment — AI systems in high-stakes domains require human oversight only when accuracy falls below 90%.",
+      "Deploy the model and audit a random 10% sample of sentences monthly for disparate impact — post-hoc auditing provides sufficient oversight without slowing the sentencing process."
+    ],
+    "answer": 1,
+    "explanation": "High-stakes AI systems in criminal justice require mandatory human oversight as a non-negotiable governance requirement regardless of accuracy. An 82% accuracy rate means roughly 1 in 6 predictions is wrong — in criminal sentencing, false positives (labeling someone high-risk who would not reoffend) lead to disproportionately harsh sentences. Key responsible AI principles for this deployment: (1) AI as decision-support, not decision-maker — humans retain authority and accountability; (2) transparency — judges must understand the model's accuracy limits, confidence intervals, and known performance disparities across demographic groups; (3) contestability — affected individuals need a mechanism to challenge AI-influenced decisions; (4) documentation — Model Cards covering performance by demographic slice and known limitations are required. This aligns with the EU AI Act's classification of criminal justice AI as 'high-risk' with mandatory human oversight requirements, and with NIST AI RMF's GOVERN function."
+  },
+  {
+    "id": 101,
+    "domain": "Domain 5: Monitoring & Responsible AI",
+    "question": "You have a credit scoring model deployed on Vertex AI with Explainability enabled. Vertex AI Model Monitoring reports no statistically significant drift in any input feature distribution over the past 4 months. However, reviewing monthly Integrated Gradients attribution reports, you notice that `annual_income` attribution has dropped from 35% to 8%, while `zip_code` attribution has increased from 5% to 42%. Aggregate model accuracy on spot-checked samples appears stable. What does this pattern most likely indicate, and what action should you take?",
+    "options": [
+      "Attribution drift is expected and harmless — as long as aggregate model accuracy is stable, changing attribution weights across features are irrelevant and require no action.",
+      "The model is overfitting to recent training data and has learned spurious feature correlations — trigger an immediate full retraining run with a larger and more recent dataset.",
+      "Attribution shift with stable input distributions and stable aggregate accuracy suggests the model may be increasingly relying on a proxy variable (zip_code may correlate with race or national origin) rather than legitimate creditworthiness signals. Audit predictions by demographic group to detect emerging disparate impact, and investigate whether to constrain or remove zip_code if discrimination is confirmed.",
+      "Feature drift monitoring is misconfigured — Vertex AI Model Monitoring should have automatically detected this attribution change as a feature distribution shift and generated an alert."
+    ],
+    "answer": 2,
+    "explanation": "Feature attribution monitoring complements input distribution monitoring. Stable input distributions with significantly shifting attributions is a red flag that can indicate: (1) proxy variable emergence — the model discovers a new correlated feature pathway (zip_code correlating with demographics) that was not previously dominant; (2) data pipeline changes that alter feature correlations without changing marginal distributions; (3) distributional changes in joint feature space invisible to per-feature monitoring. In credit scoring, zip_code is a well-documented proxy for race in the US, and heavy reliance on it creates disparate impact risk even when no protected attributes are explicitly used. Actions: (1) compute per-demographic-group performance metrics using the What-If Tool or TFMA with SlicingSpec; (2) if disparate impact is confirmed, consider removing zip_code or applying fairness constraints during retraining; (3) report findings in an updated Model Card. Feature drift monitoring detects changes in feature value distributions — it does not detect changes in how the model internally uses features."
   }
 ]

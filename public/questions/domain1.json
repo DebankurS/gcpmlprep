@@ -115,5 +115,57 @@
     ],
     "answer": 2,
     "explanation": "When misclassification costs are highly asymmetric, you must optimize for the metric that minimizes the expensive error type. Here, a False Negative costs $500K vs $2K for a False Positive — a 250:1 ratio. Recall (True Positives / (True Positives + False Negatives)) directly minimizes missed failures. In practice: lower the decision threshold below 0.5 to increase Recall at the expense of Precision. F1-Score implicitly treats FP and FN costs as equal, which is incorrect here. Accuracy is misleading for imbalanced failure datasets. The cost-weighted objective to minimize is (FN_cost × FNR + FP_cost × FPR), but maximizing Recall is the correct directional proxy."
+  },
+  {
+    "id": 82,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "Your customer service team receives 5,000 support emails per day that need to be classified into 12 predefined business categories (e.g., 'billing', 'technical', 'returns'). You have 8,000 labeled examples across all categories. The team managing this system consists of Python developers with no deep learning or NLP expertise, and they need a production-ready classifier within 2 weeks. Which approach is most appropriate?",
+    "options": [
+      "Fine-tune a BERT model using the Hugging Face transformers library on Vertex AI Custom Training — BERT is the standard for text classification and will outperform all alternatives.",
+      "Use Vertex AI AutoML Text Classification: upload the labeled dataset in CSV or JSONL format, train a single-label classifier, and deploy to a Vertex AI Endpoint. AutoML handles tokenization, model architecture selection, and hyperparameter tuning automatically with no NLP expertise required.",
+      "Use BigQuery ML with CREATE MODEL TYPE='LOGISTIC_REG' on a bag-of-words TF-IDF feature matrix extracted from the email text — BigQuery ML can train classifiers on text data directly.",
+      "Use the Cloud Natural Language API's built-in text classification — it can classify emails into the 12 custom business categories without any training data."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI AutoML Text Classification is purpose-built for teams that need production-quality NLP models without deep learning expertise. With 8,000 labeled examples across 12 classes, AutoML has sufficient training data to produce a high-quality classifier. It handles tokenization, embeddings, architecture search, and hyperparameter tuning automatically. The 2-week timeline and no-NLP-expertise constraint rule out BERT fine-tuning (requires ML expertise, significant setup, and careful hyperparameter tuning). Cloud Natural Language API's content classification uses Google's pre-defined categories, not custom business categories — it cannot classify into your 12 domain-specific categories without a custom model. BigQuery ML does not natively process raw text for classification (no tokenizer or embedding pipeline)."
+  },
+  {
+    "id": 83,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A security team has 18 months of normal network traffic logs (IP addresses, request rates, packet sizes, timing patterns) and wants to detect anomalous traffic indicating potential intrusions. They have fewer than 50 confirmed attack examples in their historical data. How should you frame the ML problem?",
+    "options": [
+      "Frame as a binary classification problem: use the 50 attack examples as the positive class and 50,000 randomly sampled normal examples as the negative class, then train an XGBoost classifier with class weighting.",
+      "Frame as an unsupervised anomaly detection problem: train a model (e.g., Isolation Forest or autoencoder) exclusively on normal traffic patterns to learn what 'normal' looks like. At inference time, traffic that deviates significantly from the learned distribution is flagged as anomalous. This approach does not require labeled attack examples.",
+      "Collect 10,000 more labeled attack examples before building any model — binary classification cannot be attempted with fewer than 1,000 positive examples.",
+      "Use Vertex AI AutoML Tabular with the 50 attack examples upweighted by a factor of 1,000 to compensate for the class imbalance."
+    ],
+    "answer": 1,
+    "explanation": "When labeled anomaly examples are extremely scarce (50 vs. 18 months of normal data), unsupervised anomaly detection is the correct problem framing. A model trained only on normal behavior learns a density or representation of normal patterns; inputs that deviate beyond a threshold are classified as anomalous. This approach: (1) requires no labeled attack data; (2) can detect novel, previously unseen attack patterns that a labeled classifier would miss; (3) scales naturally as new attack types emerge. On GCP, implement using Vertex AI Custom Training with scikit-learn's IsolationForest or a TensorFlow autoencoder trained on normal-only data. Binary classification with 50 positive examples would severely underfit and only detect the specific attack patterns already seen — missing novel intrusion techniques entirely."
+  },
+  {
+    "id": 84,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "You are improving search result ordering for an e-commerce platform. Given a user's search query (e.g., 'running shoes'), the system retrieves 200 candidate products and must order them so the most relevant products appear at the top. Your training data consists of historical search sessions with user click and purchase signals. A junior data scientist proposes training a binary classifier to predict whether a user will click on each product independently. What is the key limitation of this framing, and what is a better alternative?",
+    "options": [
+      "Binary classification is correct: predict P(click | user, query, product) for each candidate independently, then sort by predicted probability descending.",
+      "Binary classification treats each item independently and optimizes per-item accuracy rather than ranked-list quality. Learning-to-rank (LTR) directly optimizes ranking metrics (NDCG, MAP) using pairwise (RankNet) or listwise (LambdaRank) loss functions that account for relative item ordering. Train an LTR model with query-product relevance features and behavioral signals; evaluate with NDCG@10 rather than AUC.",
+      "The problem should be framed as regression — predict the exact revenue each product will generate if shown, then rank by predicted revenue.",
+      "Use Vertex AI Vector Search to find the 10 nearest neighbors of the query embedding — this eliminates the need for any ranking model."
+    ],
+    "answer": 1,
+    "explanation": "Search ranking is a learning-to-rank (LTR) problem. Binary classification optimizes per-item click probability independently but ignores ranking quality metrics like NDCG (Normalized Discounted Cumulative Gain) and MAP (Mean Average Precision) that capture whether the best items appear at the top of the list. LTR approaches: (1) Pointwise — regress a relevance score per item; (2) Pairwise — learn which of two items should rank higher for a query (RankNet); (3) Listwise — optimize the full ranked list directly (LambdaRank). For e-commerce, pairwise/listwise LTR with click/purchase signals significantly outperforms independent click prediction for ranking quality. Vertex AI Vector Search retrieves candidates by embedding similarity but does not personalize or rerank using behavioral signals — it solves the retrieval (candidate generation) step, not the ranking step."
+  },
+  {
+    "id": 85,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A media company wants to automatically extract named entities — people, organizations, and locations — from a stream of 10,000 news articles per day to populate a knowledge graph. They have zero labeled training data and no ML engineers on the team. Time to production is 1 week. Which approach is most appropriate?",
+    "options": [
+      "Collect 5,000 labeled examples using a crowdsourced annotation tool, then fine-tune a BERT token classification model on Vertex AI Custom Training.",
+      "Use Vertex AI AutoML Natural Language entity extraction — it can train a production NER model with zero labeled examples using transfer learning.",
+      "Use the Cloud Natural Language API's analyzeEntities method: a pre-trained, managed NER service that identifies people, organizations, locations, and other entity types out of the box with no training data, no ML expertise, and a simple REST API call.",
+      "Use Document AI with a General Form Parser — it extracts all named entities from unstructured news text without any training data or ML expertise."
+    ],
+    "answer": 2,
+    "explanation": "The Cloud Natural Language API's analyzeEntities endpoint is a fully managed, pre-trained NER service that identifies standard entity types (PERSON, ORGANIZATION, LOCATION, EVENT, WORK_OF_ART, CONSUMER_GOOD, and more) in text without requiring training data, model hosting, or ML expertise. For standard entity types at 10K articles/day, the API provides high accuracy without any ML pipeline setup, and is billable per character processed. AutoML NL Entity Extraction requires labeled examples (annotated entity spans in JSONL format) — it cannot train with zero labeled data. BERT fine-tuning requires labeled data and ML expertise. Document AI Form Parser is designed for structured or semi-structured documents (forms, invoices, tables), not free-form news article NER."
   }
 ]

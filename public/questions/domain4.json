@@ -167,5 +167,57 @@
     ],
     "answer": 1,
     "explanation": "Drift/performance-triggered retraining retrains only when necessary, avoiding wasteful compute. However, it requires robust monitoring: ground-truth fraud labels arrive days to weeks later via chargebacks, so you monitor feature distributions (training-serving skew) as a leading indicator using Vertex AI Model Monitoring. When skew exceeds a threshold, a Cloud Monitoring alert triggers a Cloud Function that submits a Vertex AI Pipeline retraining job. Schedule-based retraining is simpler but wasteful when distributions are stable. A common production pattern is hybrid: trigger on drift threshold OR on a fallback schedule (e.g., monthly at minimum) to guard against monitoring blind spots."
+  },
+  {
+    "id": 94,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your team has trained a new fraud detection model (v2) with an improved feature set. Before replacing the production model (v1), you want to observe v2's predictions on real production traffic without affecting any user-facing decisions. Users must continue receiving v1 predictions only. v2 predictions should be captured for offline analysis and comparison. What deployment pattern achieves this?",
+    "options": [
+      "Deploy v2 to the same Vertex AI Endpoint with a 0% traffic split — a 0% allocation means v2 receives no requests and predictions can be simulated separately.",
+      "Implement a shadow deployment: deploy v2 on a separate Vertex AI Endpoint. Configure the application layer to duplicate every incoming prediction request — sending one copy to v1 (response returned to user) and one asynchronous copy to v2 (response logged to BigQuery but not surfaced to users). Analyze v2 logs offline to compare prediction quality and latency against v1 before promoting.",
+      "Use Vertex AI Batch Prediction to run v2 against a recent static sample of production inputs and compare outputs — this is equivalent to live shadow traffic testing.",
+      "Enable Vertex AI Model Monitoring on v2 with v1 as the baseline — this natively implements shadow mode by forwarding all production traffic to both models simultaneously."
+    ],
+    "answer": 1,
+    "explanation": "Shadow deployment (dark launch) routes a copy of live production traffic to a new model without returning its predictions to users. Key differences from canary deployment: canary sends a percentage of real user decisions to the new model; shadow forwards traffic to both models but only returns the production model's output. Shadow allows: (1) evaluating v2 prediction quality on real production inputs; (2) measuring v2 latency and resource usage under real load; (3) comparing model outputs without any risk to users or business decisions. On GCP, implement via application-layer request forking (call both endpoints asynchronously), or a Cloud Pub/Sub fan-out pattern. A 0% traffic split on a shared Vertex AI Endpoint actually prevents v2 from receiving any requests — the traffic percentage controls request routing, not observation. Batch Prediction on static samples does not capture the full distribution of live traffic patterns."
+  },
+  {
+    "id": 95,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You have deployed a tabular classification model to a Vertex AI Endpoint. Production traffic follows a predictable pattern: approximately 5,000 requests per minute during business hours (9am-5pm) and near-zero overnight. During peak hours, the single serving replica reaches 95% CPU utilization and prediction latency spikes above your 500ms SLA. Overnight, the idle replica wastes money. Which endpoint configuration resolves both problems?",
+    "options": [
+      "Manually increase replica count to 10 before 9am each day and scale back to 1 after 5pm using a Cloud Scheduler job that calls the Vertex AI REST API.",
+      "Configure autoscaling on the deployed model: set `min_replica_count=1` (to maintain one warm replica overnight and avoid cold starts at peak onset) and `max_replica_count=10`. Vertex AI monitors CPU utilization on serving replicas and automatically provisions additional replicas when utilization exceeds the target threshold, scaling back when demand drops — no manual intervention required.",
+      "Deploy the model to a single larger machine type (e.g., n1-highmem-32) — one sufficiently powerful machine handles peak traffic without requiring multiple replicas.",
+      "Switch to Vertex AI Batch Prediction instead of an Online Endpoint — Batch Prediction automatically scales compute and handles variable throughput more cost-effectively."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Endpoint autoscaling is configured per deployed model via `min_replica_count` and `max_replica_count` in the DeployedModel spec. When CPU utilization on existing replicas exceeds the configured target (default ~60%), Vertex AI automatically provisions additional replicas up to `max_replica_count`. When utilization drops, replicas scale back down to `min_replica_count`. Setting `min_replica_count=1` ensures a warm replica is always available, eliminating the cold start latency spike that would occur if the endpoint scaled to zero overnight. Manual Cloud Scheduler scaling works but requires maintenance and cannot react to unexpected traffic spikes mid-day. Upsizing a single machine is less flexible (fixed capacity regardless of actual load) and may still breach the SLA during unexpected traffic bursts. Batch Prediction is for offline asynchronous workloads and cannot serve synchronous API requests with sub-500ms SLA requirements."
+  },
+  {
+    "id": 96,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "You are building a Vertex AI Pipeline using the KFP SDK v2. After an evaluation component computes the new model's AUC-ROC, you want to deploy the model to the production endpoint ONLY if AUC-ROC exceeds 0.85. If below the threshold, the pipeline should skip deployment and trigger an alert notification instead. How do you implement this conditional branching in KFP?",
+    "options": [
+      "Add a Python if/else statement inside the evaluation component function — Python conditionals inside a component function are interpreted by the KFP runtime as pipeline-level branching between downstream components.",
+      "Write a custom 'gate' component that checks the AUC-ROC value and raises an exception if below threshold — the KFP runtime will catch the exception and automatically skip all downstream deployment components.",
+      "Use `dsl.If`: wrap the deployment component call inside `with dsl.If(eval_task.outputs['auc_roc'] > 0.85):` and the alert component inside `with dsl.Else():`. KFP compiles this into the pipeline graph as a conditional branch evaluated at runtime using the evaluation component's output.",
+      "Store the AUC-ROC value in a BigQuery table after evaluation, and use a Cloud Scheduler job to poll the value and trigger a separate deployment pipeline when the threshold is met."
+    ],
+    "answer": 2,
+    "explanation": "KFP SDK v2 provides `dsl.If`, `dsl.Elif`, and `dsl.Else` for pipeline-level conditional branching. These are NOT Python if/else statements evaluated at compile time — they are pipeline compiler directives that evaluate conditions at runtime based on component output parameter values. Example: `with dsl.If(eval_task.outputs['auc_roc'] > 0.85, name='auc-threshold-check'): deploy_op(model=train_task.outputs['model'])`. The `dsl.If` condition is compiled into the pipeline graph and evaluated by the Vertex AI Pipelines execution engine when the evaluation component's output is available. Python if/else statements inside component functions affect only that component's internal logic — they do not create pipeline-level conditional routing between components. Raising exceptions in a gate component fails the pipeline run rather than gracefully skipping downstream steps."
+  },
+  {
+    "id": 97,
+    "domain": "Domain 4: MLOps & Pipelines",
+    "question": "Your team deployed model v2 to production yesterday by updating the Vertex AI Endpoint's traffic split to 100% v2. Within hours, Cloud Monitoring alerts fire: v2's prediction error rate is 3x higher than v1's historical baseline. You need to restore v1 to serve 100% of traffic as quickly as possible. v1's model artifact is registered in Vertex AI Model Registry but is no longer deployed to the endpoint. What is the fastest recovery path?",
+    "options": [
+      "Retrain a new model from v1's source code and dataset, then deploy the retrained model — once a new version is deployed, the original v1 weights are no longer usable.",
+      "Re-deploy model v1 from Vertex AI Model Registry to the existing endpoint by calling `endpoint.deploy(model=v1_model, traffic_percentage=100)`, which simultaneously sets v1 to 100% traffic. Since v1's artifact is already registered, no retraining is needed — deployment takes approximately 2-5 minutes.",
+      "Restore v1 by reverting the Artifact Registry Docker image tag to the v1 container image — Vertex AI Endpoints automatically detect the tag change and swap the underlying model.",
+      "File a support request with Google Cloud to restore the previous endpoint traffic configuration — endpoint traffic split changes cannot be reversed programmatically once committed."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Model Registry is the key enabler of fast rollback: model artifacts and metadata are versioned and retained independently of endpoint deployments. When v2 underperforms, restore v1 without retraining: (1) retrieve the registered v1 Model resource; (2) call `endpoint.deploy(model=v1_model_resource, traffic_percentage=100, deployed_model_display_name='v1-rollback')` — this deploys v1 from the registry in 2-5 minutes; (3) the endpoint now routes 100% of traffic to v1; (4) optionally undeploy v2 with `endpoint.undeploy(deployed_model_id=v2_deployed_id)` to reclaim compute. This is why maintaining all model versions in Model Registry and avoiding deletion of older versions is a critical MLOps practice. An even faster alternative — blue-green deployment — keeps v1 deployed at 0% traffic on the same endpoint, enabling an instantaneous traffic split change for rollback."
   }
 ]
