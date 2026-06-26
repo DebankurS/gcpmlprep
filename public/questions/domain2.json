@@ -141,5 +141,57 @@
     ],
     "answer": 2,
     "explanation": "BigQuery partition pruning is the standard technique for limiting scan cost on time-series datasets. When a table is partitioned by a date/timestamp column and queries include a filter on that column, BigQuery scans only the matching partitions. For a 3-year table queried for 90 days, this reduces scanned bytes from 100% to ~8%, lowering cost (BigQuery charges per TB scanned) and query time proportionally. Optionally add CLUSTER BY product_id or customer_id to further optimize for secondary filters. Exporting to GCS adds pipeline complexity and extra storage cost. Materialized Views add refresh overhead and introduce potential staleness."
+  },
+  {
+    "id": 86,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are training a model to predict whether a bank customer will default on a loan next month, using 3 years of monthly customer transaction records. A junior data scientist proposes using scikit-learn's KFold with k=5, randomly shuffling all rows before splitting. Why is this approach problematic for this dataset, and what is the correct strategy?",
+    "options": [
+      "KFold with k=5 is too few folds — increasing to k=10 provides more reliable cross-validation for financial data.",
+      "Random KFold introduces temporal data leakage: training folds will contain records from months AFTER the validation fold's records, meaning the model sees future data during training. This artificially inflates validation performance and causes the model to fail in production. Use TimeSeriesSplit: always train on earlier months and validate on later months, maintaining strict chronological ordering.",
+      "KFold is incorrect because the dataset is tabular — use Stratified KFold stratified on the default label to preserve class balance across folds.",
+      "Random KFold is acceptable here because each row represents a single customer-month snapshot — the temporal ordering of rows does not introduce leakage for tabular customer features."
+    ],
+    "answer": 1,
+    "explanation": "Temporal leakage is a critical problem for time-series ML: when you randomly shuffle and split, records from month 30 appear in training folds while records from month 25 appear in the validation fold — the model learns from 'future' data when predicting 'past' outcomes. This produces misleadingly optimistic validation metrics. In production, only past data is available to predict the future — matching the correct evaluation protocol. TimeSeriesSplit (sklearn) implements expanding or sliding-window cross-validation where each fold's training data strictly precedes its validation data. For BigQuery-based pipelines: apply a WHERE transaction_date < cutoff_date filter for training and WHERE transaction_date >= cutoff_date for validation, then retrain on the full dataset before production deployment."
+  },
+  {
+    "id": 87,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your e-commerce training dataset includes a `product_id` column with 500,000 unique product IDs as a feature for purchase prediction. One-hot encoding would create a 500,000-dimensional sparse feature, making training computationally infeasible. Which encoding strategy is most appropriate for this high-cardinality categorical feature in a deep learning model?",
+    "options": [
+      "Drop the product_id feature entirely — high-cardinality ID features are always too noisy to be useful for prediction.",
+      "Use target encoding: replace each product_id with the mean purchase rate for that product computed from the training set.",
+      "Use label encoding: assign each unique product_id a sequential integer from 1 to 500,000 and pass the integer directly to the model as a numerical feature.",
+      "Use a learned embedding layer: represent each product_id as a trainable dense vector (e.g., 64 dimensions) using `tf.keras.layers.Embedding(input_dim=500001, output_dim=64)`. Embedding weights are jointly optimized during training and capture latent product properties. For non-neural models, use feature hashing (sklearn's HashingVectorizer) to map IDs into a fixed-size hash space."
+    ],
+    "answer": 3,
+    "explanation": "Embeddings are the standard approach for high-cardinality categorical features in deep learning: each category maps to a trainable dense vector optimized jointly with the rest of the model. This avoids the memory and sparsity issues of one-hot encoding. A common heuristic for embedding dimension is min(50, (cardinality+1)//2). In TFX, `tft.compute_and_apply_vocabulary` builds the vocabulary lookup; the integer IDs are then fed into an embedding layer. Target encoding is a strong alternative for tree-based models (XGBoost, GBT) but requires out-of-fold encoding to avoid target leakage. Label encoding assigns arbitrary integers that imply ordinal relationships — this is meaningless for nominal product IDs and produces poor representations without an embedding. Dropping a high-cardinality ID feature discards valuable product-level signal (purchase patterns, price range, category correlations)."
+  },
+  {
+    "id": 88,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are training a binary image classifier to detect surface cracks in manufactured parts. Your dataset contains only 1,200 images total (900 training, 300 validation). The model consistently overfits: training accuracy is 98% but validation accuracy is 71%. You cannot collect more physical samples. Which data augmentation strategy most effectively increases effective training set diversity for this visual inspection task?",
+    "options": [
+      "Duplicate all 900 training images and concatenate them — doubling the dataset to 1,800 images will reduce overfitting.",
+      "Apply random horizontal and vertical flips, random 90-degree rotations, and small random brightness and contrast adjustments. These transforms create visually distinct training examples without introducing semantically invalid images, since cracks can appear in any orientation and under varying lighting conditions. Implement in the training pipeline using `tf.keras.layers.RandomFlip`, `RandomRotation`, and `RandomBrightness`.",
+      "Apply extreme augmentations: randomly invert all pixel values, add 50% Gaussian noise, and randomly erase 40% of each image — more aggressive augmentation always improves generalization.",
+      "Generate 50,000 synthetic crack images using a GAN before training — GAN-generated images perfectly substitute for real data in small-dataset scenarios."
+    ],
+    "answer": 1,
+    "explanation": "Data augmentation creates new training examples by applying label-preserving transforms. For visual inspection: (1) geometric transforms — horizontal/vertical flips and 90-degree rotations are valid because cracks can appear in any orientation; (2) color/lighting adjustments — brightness and contrast variation simulates different manufacturing lighting conditions. Invalid augmentations for this task: pixel value inversion changes the visual semantics; excessive noise masks the subtle crack texture the model must learn to detect; erasing large image patches may remove the defect itself, effectively mislabeling the sample. GANs require large training datasets themselves and typically introduce artifacts that harm downstream classifier accuracy. In Vertex AI Custom Training, augmentation layers should be placed inside the training pipeline only (not in the serving signature) by wrapping them in a `training=True` conditional, so augmentation runs only at training time."
+  },
+  {
+    "id": 89,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are preparing a tabular dataset for Vertex AI Custom Training. One numerical feature, `credit_utilization_ratio`, has 12% missing values. A colleague suggests dropping all rows where this feature is missing. What is the main problem with this approach, and what are better alternatives?",
+    "options": [
+      "Dropping rows with missing values is best practice — missing values cannot be reliably imputed and always introduce model bias.",
+      "Replace all missing values with 0 — for numerical features, 0 is a safe neutral value that will not bias the model.",
+      "Dropping 12% of rows risks removing non-random records (missingness may correlate with the target — e.g., customers who report no credit utilization may have no credit history, which itself predicts default risk). Better alternatives: (1) median/mean imputation for MCAR data; (2) model-based imputation (IterativeImputer) when missingness correlates with other features; (3) add a binary indicator feature `credit_utilization_is_missing` to let the model learn the missingness pattern. Vertex AI AutoML Tabular handles missing values natively without preprocessing.",
+      "Use tf.Transform to encode missing values as -1 — gradient descent will learn to ignore the sentinel value automatically."
+    ],
+    "answer": 2,
+    "explanation": "Missing data handling depends on the missingness mechanism: (1) MCAR (Missing Completely At Random) — mean/median imputation is safe; (2) MAR (Missing At Random, correlated with other observed features) — model-based imputation (sklearn's IterativeImputer) is more accurate; (3) MNAR (Missing Not At Random) — the fact of missingness is itself informative and a binary indicator feature should be added alongside imputed values. Dropping 12% of rows reduces training set size and introduces bias when missingness is correlated with the target. Vertex AI AutoML Tabular handles MCAR/MAR missing values natively using learned imputation strategies, so no preprocessing is required when using AutoML. For custom training, impute missing values inside tf.Transform so the same imputation logic runs at serving time — preventing training-serving skew."
   }
 ]

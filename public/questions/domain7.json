@@ -128,5 +128,57 @@
     ],
     "answer": 1,
     "explanation": "ADK multi-agent composition: sub-agents are registered with a parent (Coordinator) agent, and the parent's model sees them as invokable tools in its function call namespace. When the Coordinator needs to retrieve documents, it issues a function call to the Search sub-agent's reasoning loop, which uses its own tools (e.g., Google Search, Vector Search) and returns a result. The Coordinator incorporates the result and may delegate further to the Analysis sub-agent. For cross-service agent coordination where agents are deployed independently as separate services, the A2A protocol provides an open standard. Within the same ADK codebase, direct sub-agent composition is simpler and avoids the overhead of HTTP-based A2A communication."
+  },
+  {
+    "id": 106,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You are building an ADK agent that needs to use tools provided by an external MCP (Model Context Protocol) server. The MCP server exposes three tools: `read_file`, `list_directory`, and `execute_sql`. You want these tools to be automatically available to your ADK agent without manually writing FunctionDeclarations for each tool. How does ADK integrate with MCP servers?",
+    "options": [
+      "ADK does not integrate with MCP servers — you must manually write FunctionDeclarations for each MCP tool and implement the HTTP protocol calls inside custom tool functions.",
+      "Use ADK's `MCPToolset`: specify the MCP server connection parameters (stdio transport for local servers, or HTTP/SSE for remote servers). ADK automatically discovers available tools from the MCP server's tool manifest, converts them to Gemini FunctionDeclarations, and handles the MCP protocol message exchange transparently when the model invokes a tool.",
+      "MCP tools must first be deployed as Vertex AI Extensions before an ADK agent can call them — direct MCP server connections are not supported in ADK.",
+      "Use Vertex AI Agent Builder's built-in MCP connector in Agent Studio — the ADK Python SDK does not support MCP tool integration."
+    ],
+    "answer": 1,
+    "explanation": "ADK's `MCPToolset` is the integration point between ADK agents and MCP servers. MCP (Model Context Protocol) provides a standardized protocol for exposing tools, resources, and prompts to language models. ADK's MCPToolset: (1) connects to an MCP server via stdio (for local process-based servers like filesystem tools) or HTTP/SSE (for remote servers); (2) sends a `tools/list` request to discover available tools and their JSON schemas; (3) automatically generates Gemini FunctionDeclarations from the tool schemas — no manual declaration writing required; (4) intercepts Gemini's FunctionCall responses for MCP tools and routes them to the MCP server via `tools/call` messages; (5) returns the MCP server's response as a FunctionResponse to the model. This enables ADK agents to use any MCP-compliant tool server (filesystem tools, database connectors, code interpreters, API wrappers) without writing protocol-level code, making MCP servers a portable and reusable tool distribution mechanism for ADK agents."
+  },
+  {
+    "id": 107,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "You have built and tested an ADK agent locally using Python. The agent uses two custom tool functions (`search_inventory` and `check_order_status`) and a Gemini 2.5 Flash model. You want to deploy it to Vertex AI Agent Engine for production serving. What is the correct deployment approach?",
+    "options": [
+      "Package the agent code as a Docker container, push to Artifact Registry, and deploy to Cloud Run — Vertex AI Agent Engine only hosts pre-built agents from the Agent Studio gallery and does not support custom ADK deployments.",
+      "Wrap the ADK agent in `vertexai.preview.reasoning_engines.AdkApp`, then call `reasoning_engines.create(AdkApp(agent=root_agent), requirements=['google-adk', 'google-genai'])` to deploy. Agent Engine packages the code, installs dependencies in a managed runtime, and returns a stable `ReasoningEngine` resource endpoint for invocation.",
+      "Deploy by uploading Python source files to a Cloud Storage bucket and referencing the bucket URI in the Vertex AI Console — Agent Engine automatically discovers and runs the agent script from GCS.",
+      "Agent Engine deployment requires Vertex AI Pipelines — define each tool as a KFP pipeline component and the agent reasoning loop as a pipeline step with conditional branching."
+    ],
+    "answer": 1,
+    "explanation": "Vertex AI Agent Engine (ReasoningEngine) deployment for ADK agents follows this workflow: (1) Build your agent using ADK (`from google.adk.agents import Agent`, tool functions decorated with `@tool`); (2) Wrap in `vertexai.preview.reasoning_engines.AdkApp(agent=root_agent, enable_tracing=True)`; (3) Deploy via `reasoning_engines.create(app, requirements=['google-adk', 'google-genai', ...], display_name='my-agent')` — Agent Engine packages your code, installs specified pip requirements in the managed runtime, and creates a `ReasoningEngine` resource; (4) The deployment returns a resource path like `projects/PROJECT/locations/REGION/reasoningEngines/ID`; (5) Invoke remotely via `remote_agent.query(input={'message': '...'}, session_id='...')`. Grant callers the `roles/aiplatform.user` IAM role on the resource. Agent Engine manages auto-scaling, session persistence, and observability — no container management or infrastructure provisioning required."
+  },
+  {
+    "id": 108,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "Your ADK agent analyzes large financial reports and generates detailed investment summaries that take 15-25 seconds to produce. Users report a poor experience because they see a blank screen for the full duration before any output appears. How should you implement streaming responses to improve perceived responsiveness?",
+    "options": [
+      "Run the agent in a background thread and poll its output buffer every 500ms, then forward accumulated tokens to the client in periodic batches.",
+      "Use ADK's async streaming API: iterate over events from `runner.run_async(session_id, new_message)` and forward each partial text chunk to the client (e.g., via Server-Sent Events or WebSocket) as it arrives. The client renders tokens incrementally, reducing the perceived wait from 15-25 seconds to the time until the first token appears (typically under 1 second).",
+      "Switch to Gemini 2.5 Flash — it generates responses faster, reducing generation time enough that streaming becomes unnecessary for sub-10-second responses.",
+      "Pre-compute common investment summaries nightly using Vertex AI Batch Prediction and serve them from Cloud Bigtable — pre-computation eliminates the need for streaming by making responses available instantly."
+    ],
+    "answer": 1,
+    "explanation": "ADK supports streaming via its async runner API. The `runner.run_async()` method returns an async generator of `Event` objects — each event contains partial text chunks, tool call signals, tool response data, or control events. Server implementation: `async for event in runner.run_async(session_id, user_message): if event.content and event.content.parts: yield event.content.parts[0].text`. Forward partial chunks to the browser via WebSocket or Server-Sent Events (SSE); the browser renders each chunk incrementally as it arrives. This pattern matches Gemini's native streaming API (`generate_content_stream`) applied across the full agent reasoning loop, including tool calls and intermediate reasoning steps. Streaming significantly improves perceived responsiveness: Time to First Token (TTFT) drops from 15-25 seconds to under 1 second, even though total completion time is unchanged. For Vertex AI Agent Engine deployments, the hosted `query` API supports a streaming mode to enable this pattern in production."
+  },
+  {
+    "id": 109,
+    "domain": "Domain 7: Agents & Reasoning Engines",
+    "question": "Your ADK agent includes a `get_product_price(product_id: str) -> dict` tool that calls an external pricing API. The API occasionally returns HTTP 503 errors. When the tool raises an uncaught exception, the entire agent session fails with an error. How should you make this tool resilient so the agent can handle pricing API outages gracefully?",
+    "options": [
+      "Wrap the tool function in a broad try/except that silently swallows all exceptions and returns an empty dict — the agent will continue the task without pricing data.",
+      "Configure Vertex AI Agent Engine to automatically retry all failed tool calls up to 3 times before failing the session — no changes to the tool function are required.",
+      "Return a structured error response from the tool instead of raising an exception: catch the 503 error and return `{'error': 'pricing_service_unavailable', 'message': 'Pricing API returned HTTP 503. Please retry or proceed without pricing data.'}`. The model observes the error in the FunctionResponse and can decide to retry, use a cached price, inform the user, or complete the task without pricing — enabling graceful degradation.",
+      "Implement retry instructions in the agent's system prompt: instruct the model to call the same tool again up to 3 times whenever it receives any error response from a tool."
+    ],
+    "answer": 2,
+    "explanation": "In ADK and Gemini function calling, tools should return structured error information rather than raising exceptions for recoverable failures. When a tool raises an uncaught exception, the ADK runtime fails the session. When a tool returns a structured error dict: (1) the error content becomes the FunctionResponse visible to the model's reasoning context; (2) the model can evaluate the error type and decide among recovery strategies (retry the tool, use an alternative source, inform the user, or proceed without that data); (3) the agent continues the session gracefully. Best practices: (a) catch specific, expected exceptions (connection errors, 503s, rate limit errors) and return typed error objects with actionable fields; (b) let unexpected programming errors propagate so they surface as bugs during development; (c) include `error_code`, `message`, and optionally `retry_after_seconds` to give the model sufficient context for its recovery decision. For deterministic retry behavior with exponential backoff, implement the retry logic inside the tool function itself before returning an error, rather than relying on the model to reason about retry timing."
   }
 ]
