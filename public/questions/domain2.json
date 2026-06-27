@@ -193,5 +193,44 @@
     ],
     "answer": 2,
     "explanation": "Missing data handling depends on the missingness mechanism: (1) MCAR (Missing Completely At Random) — mean/median imputation is safe; (2) MAR (Missing At Random, correlated with other observed features) — model-based imputation (sklearn's IterativeImputer) is more accurate; (3) MNAR (Missing Not At Random) — the fact of missingness is itself informative and a binary indicator feature should be added alongside imputed values. Dropping 12% of rows reduces training set size and introduces bias when missingness is correlated with the target. Vertex AI AutoML Tabular handles MCAR/MAR missing values natively using learned imputation strategies, so no preprocessing is required when using AutoML. For custom training, impute missing values inside tf.Transform so the same imputation logic runs at serving time — preventing training-serving skew."
+  },
+  {
+    "id": 113,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "You are preparing 500 GB of text data for a BERT fine-tuning job on Vertex AI Custom Training. The training script reads from Cloud Storage using `tf.data.Dataset`. Data is currently stored as CSV files. Each training step requires reading and parsing many small records, and GPU utilization is only 38% because the data pipeline cannot supply batches fast enough. Which data format change most effectively eliminates this bottleneck?",
+    "options": [
+      "Convert CSV files to Parquet using Apache Spark on Cloud Dataproc — Parquet's columnar compression reduces file sizes and therefore read throughput from Cloud Storage.",
+      "Keep CSV but increase the number of parallel `tf.data.Dataset.map()` workers — more parallelism will overcome parsing overhead without changing the file format.",
+      "Convert to sharded TFRecord files (e.g., 200 files × 2.5 GB each): serialize examples as protocol buffers with `tf.train.Example`, write to GCS with `tf.io.TFRecordWriter`. Use `tf.data.TFRecordDataset` with `.interleave()` across shards, `.map()` with `num_parallel_calls=tf.data.AUTOTUNE`, and `.prefetch(tf.data.AUTOTUNE)` so preprocessing overlaps with GPU compute. TFRecords eliminate CSV text parsing, enable efficient binary reads, and allow full pipelining of I/O and compute.",
+      "Store data in Cloud Bigtable and read rows directly in the training loop — Bigtable's low-latency key-value reads eliminate Cloud Storage I/O latency for ML training."
+    ],
+    "answer": 2,
+    "explanation": "TFRecord is TensorFlow's native binary serialization format optimized for streaming large training datasets. Key advantages over CSV: (1) no text parsing overhead — each record is a pre-serialized binary proto; (2) sharding enables parallel reads across multiple files; (3) `tf.data` interleave across shards + prefetch creates a fully pipelined I/O→parse→GPU workflow where batches are ready before the GPU finishes the previous step — this is the primary mechanism for achieving high GPU utilization. Parquet is excellent for columnar analytical queries (BigQuery, Spark) but is not natively supported by `tf.data` and requires conversion at training time. Bigtable is optimized for transactional row lookups, not streaming sequential ML training reads. The correct workflow for Vertex AI Custom Training: preprocess to TFRecord once in a Vertex AI Pipeline step, then reference the GCS URI in training jobs."
+  },
+  {
+    "id": 114,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your team needs to preprocess 8 TB of raw clickstream logs stored in Cloud Storage using Apache Spark's GraphX library to compute user-level graph features (e.g., PageRank on user-product interaction graphs). The preprocessing runs as a one-time batch job with no streaming requirements. The team has strong Spark expertise and existing PySpark scripts. Should you use Cloud Dataflow or Cloud Dataproc?",
+    "options": [
+      "Cloud Dataflow (Apache Beam): it is GCP's preferred managed data processing service and is always more cost-effective than Cloud Dataproc for any batch workload.",
+      "Cloud Dataproc (Apache Spark): Cloud Dataflow runs Apache Beam, which does not include Spark's GraphX library or MLlib. Dataproc runs native Spark clusters, supports the full Spark ecosystem (GraphX, MLlib, SparkSQL, PySpark), reuses the team's existing PySpark scripts without rewriting, and scales to 8 TB with autoscaling cluster configurations. For graph-based computations specifically requiring Spark APIs, Dataproc is the correct choice.",
+      "Cloud Dataflow with a custom DoFn that imports GraphX as a Python library — Apache Beam's runner can execute any Python library including Spark extensions.",
+      "Neither: use Vertex AI Pipelines with a Python component that loads the full 8 TB dataset into memory on a high-memory VM for processing."
+    ],
+    "answer": 1,
+    "explanation": "Cloud Dataflow (Apache Beam) and Cloud Dataproc (Apache Spark) solve overlapping but distinct problems. Use Dataflow when: the team uses Apache Beam APIs, you need unified batch+streaming, or you want fully serverless auto-scaling with no cluster management. Use Dataproc when: existing code uses Spark-specific APIs (GraphX, MLlib, SparkSQL, RDD operations), Spark's ecosystem libraries are required, or migrating from on-premises Hadoop. GraphX is a Spark-specific graph computation library with no Beam equivalent — rewriting graph algorithms in Beam would be a significant engineering investment. Dataproc supports ephemeral clusters (create before job, delete after) that match Dataflow's cost model for batch jobs. For ML preprocessing pipelines, Dataproc jobs can be orchestrated from Vertex AI Pipelines using the `DataprocCreateClusterOperator` or the KFP Dataproc component."
+  },
+  {
+    "id": 115,
+    "domain": "Domain 2: Data Preparation & Processing",
+    "question": "Your tabular churn prediction dataset has 420 features, many of which are temporally derived metrics that are highly correlated (e.g., `avg_spend_7d`, `avg_spend_30d`, `avg_spend_90d`, `avg_spend_180d`). An XGBoost model trained on all 420 features overfits and training is slow. Which feature selection strategy is most principled for reducing dimensionality while preserving predictive power?",
+    "options": [
+      "Apply PCA to reduce all 420 features to 50 principal components — PCA always improves model performance by removing noise dimensions.",
+      "Drop all features with any missing values, then randomly sample 50 features from the remaining set to ensure an unbiased reduced feature set.",
+      "Use a combination of correlation filtering and model-based importance: (1) compute a correlation matrix and for any pair with Pearson |r| > 0.95, drop the feature with lower variance; (2) train an initial XGBoost model on the reduced set and compute feature importances (gain) or SHAP values; (3) remove features with near-zero importance (e.g., bottom 10%). This data-driven approach retains features that genuinely drive predictions while eliminating redundancy without discarding useful information.",
+      "Always select features using domain knowledge alone — statistical methods introduce selection bias when applied to correlated time-series derived features."
+    ],
+    "answer": 2,
+    "explanation": "For correlated tabular features in tree-based models, a two-stage approach is most principled: (1) Correlation filtering removes redundant features (keeping `avg_spend_90d` and `avg_spend_7d` when they are both highly correlated with `avg_spend_30d` adds no new information and inflates the feature space). Threshold |r| > 0.90–0.95 is common. (2) Importance-based pruning uses the model's own learned importance (gain, SHAP) to identify features that provide zero predictive value after correlation-based reduction. PCA removes interpretability by creating linear combinations of features — important for regulatory contexts like churn models where feature attribution is required. Random feature sampling discards high-value features arbitrarily. In Vertex AI pipelines, run this selection once on training data and apply the same selected features at serving time to prevent training-serving skew."
   }
 ]

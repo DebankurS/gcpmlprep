@@ -167,5 +167,44 @@
     ],
     "answer": 2,
     "explanation": "The Cloud Natural Language API's analyzeEntities endpoint is a fully managed, pre-trained NER service that identifies standard entity types (PERSON, ORGANIZATION, LOCATION, EVENT, WORK_OF_ART, CONSUMER_GOOD, and more) in text without requiring training data, model hosting, or ML expertise. For standard entity types at 10K articles/day, the API provides high accuracy without any ML pipeline setup, and is billable per character processed. AutoML NL Entity Extraction requires labeled examples (annotated entity spans in JSONL format) — it cannot train with zero labeled data. BERT fine-tuning requires labeled data and ML expertise. Document AI Form Parser is designed for structured or semi-structured documents (forms, invoices, tables), not free-form news article NER."
+  },
+  {
+    "id": 110,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A large e-commerce platform serves 100 million users and has a catalog of 20 million products. An ML engineer proposes scoring all 20 million products for each user with a single matrix factorization model at request time to generate personalized recommendations. A senior architect objects. What architectural pattern should the architect propose, and why?",
+    "options": [
+      "Scale the Vertex AI Endpoint to 500 GPU replicas — modern GPU inference can score 20 million products per user request within a 200ms SLA.",
+      "Pre-compute top-10 recommendations for every user nightly in a Vertex AI Batch Prediction job and store results in Bigtable — no real-time scoring is needed.",
+      "Adopt a two-stage recommendation architecture: (1) Retrieval — use Vertex AI Vector Search with approximate nearest-neighbor search to retrieve a small candidate set (100–1000 items) from 20 million in under 10ms using user-embedding similarity; (2) Ranking — score only the candidate set with a richer, more expensive ranking model (e.g., a wide-and-deep neural network with user-item interaction features). This decouples scale from accuracy and keeps per-request compute tractable.",
+      "Use BigQuery ML MATRIX_FACTORIZATION and call ML.RECOMMEND at request time via a Cloud Run proxy — BigQuery's serverless scaling handles any throughput."
+    ],
+    "answer": 2,
+    "explanation": "Scoring all 20 million products per request is computationally prohibitive at scale regardless of hardware: 20M dot products per request × millions of users is infeasible within a low-latency SLA. The two-stage retrieval-then-ranking pattern solves this: (1) Retrieval uses fast approximate nearest-neighbor search (Vertex AI Vector Search / ScaNN) to reduce candidates from 20M to ~1000 in under 10ms — this stage prioritizes recall (surface all plausible good candidates); (2) Ranking applies a more expressive model (cross features, real-time context) only to the small candidate set — this stage prioritizes precision. Each stage is optimized independently. Batch pre-compute handles latency but cannot incorporate real-time context (recent clicks, current inventory). ML.RECOMMEND in BigQuery is designed for offline batch scoring, not sub-second real-time serving."
+  },
+  {
+    "id": 111,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "Your team trained a new recommendation model and wants to run an online A/B test to determine if it significantly improves click-through rate (CTR) over the current model (baseline CTR: 4.2%). The data science manager asks how long to run the test before drawing conclusions. What should you determine first, and what common mistake must you avoid?",
+    "options": [
+      "Run the test for exactly 14 days — industry standard A/B tests always require 2 weeks for statistical validity.",
+      "Perform a power analysis before starting: specify the baseline metric (4.2% CTR), minimum detectable effect (e.g., 0.3% absolute lift to 4.5%), desired statistical power (80%), and significance level (α=0.05). This determines the required sample size per variant, which — divided by daily traffic — gives the minimum test duration. Avoid peeking at p-values before reaching the required sample size (optional stopping), which inflates the false positive rate. Deploy variants using Vertex AI Endpoint traffic splitting.",
+      "Check the p-value daily; stop the test as soon as p < 0.05 to minimize the time users are exposed to the potentially inferior model.",
+      "Run the test for 3 days and apply a Bonferroni correction to compensate for the short duration — corrections make any test duration statistically valid."
+    ],
+    "answer": 1,
+    "explanation": "Valid A/B test design requires a pre-calculated sample size from power analysis, NOT an arbitrary duration. Optional stopping (checking significance daily and stopping when p < 0.05) is a critical error: it inflates the Type I error rate far above α=0.05 because each additional check is another chance for a false positive. Power analysis inputs: baseline rate (4.2%), minimum detectable effect (the smallest improvement worth detecting), power (probability of detecting a real effect — typically 80%), and α. The output is the required number of observations per variant. Duration = required observations / daily traffic. For CTR experiments in recommendation, also consider novelty effects (inflate early CTR) and day-of-week cycles (run full weeks). Vertex AI Endpoints support percentage-based traffic splitting for serving both models simultaneously without client-side changes."
+  },
+  {
+    "id": 112,
+    "domain": "Domain 1: Framing & Architecture",
+    "question": "A product team wants to build a system that learns to display personalized promotions to maximize 12-month customer lifetime value (CLV). A data scientist proposes a supervised model trained to predict which promotion a customer will click (optimizing click-through rate). A senior ML engineer proposes a reinforcement learning (RL) approach that learns a promotion display policy. Under what conditions is the RL framing more appropriate than supervised click-prediction?",
+    "options": [
+      "RL is always preferable to supervised learning for any personalization task — supervised click models are never appropriate for production recommendation systems.",
+      "Use supervised click-prediction: it is simpler to train, requires less data, and click-through rate is a reliable proxy for long-term CLV, making RL unnecessary.",
+      "RL is more appropriate when: (1) the true objective is delayed and cumulative (12-month CLV, not immediate click); (2) actions affect future state — showing a promotion changes customer behavior and influences future interactions (sequential decision-making); (3) sufficient interaction history exists to learn a reward model or a simulation environment is available for off-policy training. Supervised click-prediction optimizes per-step engagement and ignores the exploration-exploitation trade-off and long-term value.",
+      "Use RL only if the team has prior RL experience; the model type should be chosen based on team familiarity, not the problem structure."
+    ],
+    "answer": 2,
+    "explanation": "The key diagnostic for RL applicability is a delayed cumulative reward combined with action-dependent state transitions. Here: (1) the business objective (12-month CLV) is delayed — no immediate label per action; (2) promotions influence future behavior (a discount trains customers to wait for deals), creating sequential dependencies that supervised models ignore; (3) supervised click-prediction can be myopic — it maximizes immediate engagement but may damage long-term CLV. RL (or contextual bandits as a simpler starting point) learns the full action-reward-state loop. In practice: start with contextual bandits (simpler, lower data requirements, handles exploration) before full MDP-based RL. On GCP, contextual bandit and RL experiments can be orchestrated via Vertex AI Pipelines with custom reward computation steps."
   }
 ]
